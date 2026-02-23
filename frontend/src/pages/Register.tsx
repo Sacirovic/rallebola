@@ -26,8 +26,8 @@ export default function Register() {
   }
 
   return (
-    <div style={s.page}>
-      <div style={s.panel}>
+    <div style={s.page} className="auth-page">
+      <div style={s.panel} className="auth-panel">
         <div style={s.panelInner}>
           <div style={s.logo}>Rallebola</div>
           <p style={s.tagline}>Keep track of what<br />your homestead holds.</p>
@@ -40,8 +40,8 @@ export default function Register() {
         </div>
       </div>
 
-      <div style={s.formSide}>
-        <div style={s.card}>
+      <div style={s.formSide} className="auth-form-side">
+        <div style={s.card} className="auth-card">
           <h2 style={s.title}>Create account</h2>
           <p style={s.sub}>Join your local inventory circle</p>
 

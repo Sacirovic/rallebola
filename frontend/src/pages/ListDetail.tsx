@@ -99,7 +99,7 @@ export default function ListDetail() {
 
   return (
     <div style={s.page}>
-      <header style={s.header}>
+      <header style={s.header} className="app-header">
         <Link to="/" style={s.back}>← Back</Link>
         <div style={s.headerCenter}>
           <span style={{ fontSize: 20 }}>🌾</span>
@@ -111,11 +111,11 @@ export default function ListDetail() {
         }
       </header>
 
-      <main style={s.main}>
+      <main style={s.main} className="page-main">
         {error && <div style={s.errorBox}>{error}</div>}
 
         {canEdit && (
-          <form onSubmit={addItem} style={s.addForm}>
+          <form onSubmit={addItem} style={s.addForm} className="add-form">
             <input
               style={{ ...s.input, flex: 2 }}
               placeholder="Item name"

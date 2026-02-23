@@ -89,23 +89,23 @@ export default function Dashboard() {
 
   return (
     <div style={s.page}>
-      <header style={s.header}>
+      <header style={s.header} className="app-header">
         <span style={s.logo}>🌲 Rallebola</span>
-        <nav style={s.nav}>
+        <nav style={s.nav} className="app-nav">
           <Link to="/borrow-requests" style={s.navLink}>📦 Borrow Requests</Link>
-          <span style={s.navDivider}>·</span>
-          <span style={s.navUser}>👤 {user?.name}</span>
+          <span style={s.navDivider} className="nav-divider">·</span>
+          <span style={s.navUser} className="nav-user">👤 {user?.name}</span>
           <button style={s.logoutBtn} onClick={() => logout().then(() => navigate('/login'))}>
             Sign out
           </button>
         </nav>
       </header>
 
-      <main style={s.main}>
+      <main style={s.main} className="page-main">
         <section style={s.section}>
           <h2 style={s.sectionTitle}>🌾 My Lists</h2>
 
-          <form onSubmit={createList} style={s.createRow}>
+          <form onSubmit={createList} style={s.createRow} className="create-row">
             <input
               style={s.createInput}
               placeholder="Name a new inventory list…"

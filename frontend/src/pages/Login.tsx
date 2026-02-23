@@ -25,8 +25,8 @@ export default function Login() {
   }
 
   return (
-    <div style={s.page}>
-      <div style={s.panel}>
+    <div style={s.page} className="auth-page">
+      <div style={s.panel} className="auth-panel">
         <div style={s.panelInner}>
           <div style={s.logo}>Rallebola</div>
           <p style={s.tagline}>Your homestead,<br />organised.</p>
@@ -40,8 +40,8 @@ export default function Login() {
         </div>
       </div>
 
-      <div style={s.formSide}>
-        <div style={s.card}>
+      <div style={s.formSide} className="auth-form-side">
+        <div style={s.card} className="auth-card">
           <h2 style={s.title}>Welcome back</h2>
           <p style={s.sub}>Sign in to your inventory</p>
 

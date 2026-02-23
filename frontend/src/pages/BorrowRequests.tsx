@@ -55,7 +55,7 @@ export default function BorrowRequests() {
 
   return (
     <div style={s.page}>
-      <header style={s.header}>
+      <header style={s.header} className="app-header">
         <Link to="/" style={s.back}>← Back</Link>
         <div style={s.headerCenter}>
           <span style={{ fontSize: 20 }}>📦</span>
@@ -64,8 +64,8 @@ export default function BorrowRequests() {
         <div style={{ width: 80 }} />
       </header>
 
-      <main style={s.main}>
-        <div style={s.tabs}>
+      <main style={s.main} className="page-main">
+        <div style={s.tabs} className="tabs-container">
           <button style={tab === 'incoming' ? s.tabActive : s.tab} onClick={() => setTab('incoming')}>
             Incoming
             {incoming.length > 0 && <span style={s.badge}>{incoming.length}</span>}
