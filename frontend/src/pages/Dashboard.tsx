@@ -13,11 +13,20 @@ interface InventoryList {
   owner_name?: string
 }
 
+interface Roadtrip {
+  id: number
+  name: string
+  date: string
+  owner_id: number
+  owner_name: string
+}
+
 export default function Dashboard() {
   const { user, logout } = useAuth()
   const navigate = useNavigate()
   const [myLists, setMyLists] = useState<InventoryList[]>([])
   const [sharedLists, setSharedLists] = useState<InventoryList[]>([])
+  const [upcomingTrips, setUpcomingTrips] = useState<Roadtrip[]>([])
   const [newListName, setNewListName] = useState('')
   const [creating, setCreating] = useState(false)
   const [error, setError] = useState('')
@@ -25,19 +34,31 @@ export default function Dashboard() {
   const [renameValue, setRenameValue] = useState('')
   const renameRef = useRef<HTMLInputElement>(null)
 
-  useEffect(() => { fetchLists() }, [])
+  useEffect(() => { fetchData() }, [])
 
   useEffect(() => {
     if (renamingId !== null) renameRef.current?.focus()
   }, [renamingId])
 
-  const fetchLists = async () => {
-    const [myRes, sharedRes] = await Promise.all([
+  const fetchData = async () => {
+    const [myRes, sharedRes, tripsRes] = await Promise.all([
       client.get('/lists'),
       client.get('/shared-with-me'),
+      client.get('/roadtrips').catch(() => ({ data: [] })),
     ])
     setMyLists(myRes.data)
     setSharedLists(sharedRes.data)
+
+    const today = new Date()
+    today.setHours(0, 0, 0, 0)
+    const upcoming = (tripsRes.data as Roadtrip[])
+      .filter((t) => {
+        if (!t.date) return false
+        const [y, m, d] = t.date.split('-').map(Number)
+        return new Date(y, m - 1, d) >= today
+      })
+      .sort((a, b) => a.date.localeCompare(b.date))
+    setUpcomingTrips(upcoming)
   }
 
   const createList = async (e: FormEvent) => {
@@ -104,6 +125,40 @@ export default function Dashboard() {
       </header>
 
       <main style={s.main} className="page-main">
+        {upcomingTrips.length > 0 && (
+          <section style={s.section}>
+            <h2 style={s.sectionTitle}>🚗 Upcoming Road Trips</h2>
+            <div style={s.grid}>
+              {upcomingTrips.map((trip) => {
+                const [y, m, d] = trip.date.split('-').map(Number)
+                const tripDate = new Date(y, m - 1, d)
+                const today = new Date(); today.setHours(0, 0, 0, 0)
+                const daysUntil = Math.round((tripDate.getTime() - today.getTime()) / 86400000)
+                const dateLabel = tripDate.toLocaleDateString(undefined, { month: 'short', day: 'numeric', year: 'numeric' })
+                return (
+                  <div key={trip.id} style={s.tripCard}>
+                    <div style={s.tripAccent} />
+                    <div style={s.tripDate}>
+                      <span style={s.tripDateDay}>{tripDate.getDate()}</span>
+                      <span style={s.tripDateMonth}>{tripDate.toLocaleDateString(undefined, { month: 'short' })}</span>
+                    </div>
+                    <div style={s.cardBody}>
+                      <Link to={`/roadtrips/${trip.id}`} style={s.cardTitle}>{trip.name}</Link>
+                      <span style={s.cardMeta}>
+                        {dateLabel}
+                        {trip.owner_id !== user?.id && ` · by ${trip.owner_name}`}
+                      </span>
+                    </div>
+                    <span style={daysUntil === 0 ? s.todayBadge : s.daysBadge}>
+                      {daysUntil === 0 ? 'Today!' : `${daysUntil}d`}
+                    </span>
+                  </div>
+                )
+              })}
+            </div>
+          </section>
+        )}
+
         <section style={s.section}>
           <h2 style={s.sectionTitle}>🌾 My Lists</h2>
 
@@ -369,6 +424,63 @@ const s: Record<string, React.CSSProperties> = {
     padding: '3px 10px',
     fontSize: 12,
     fontWeight: 600,
+    marginRight: 14,
+    whiteSpace: 'nowrap' as const,
+  },
+  tripCard: {
+    background: '#FDFCF8',
+    border: '1.5px solid #DDD0B0',
+    borderRadius: 10,
+    display: 'flex',
+    alignItems: 'center',
+    overflow: 'hidden',
+  },
+  tripAccent: {
+    width: 5,
+    alignSelf: 'stretch',
+    background: '#D4A84A',
+    flexShrink: 0,
+  },
+  tripDate: {
+    display: 'flex',
+    flexDirection: 'column' as const,
+    alignItems: 'center',
+    justifyContent: 'center',
+    width: 48,
+    flexShrink: 0,
+    padding: '0 4px',
+  },
+  tripDateDay: {
+    fontFamily: "'Lora', Georgia, serif",
+    fontSize: 20,
+    fontWeight: 700,
+    color: '#9B7A30',
+    lineHeight: 1,
+  },
+  tripDateMonth: {
+    fontSize: 10,
+    fontWeight: 600,
+    color: '#C4A882',
+    textTransform: 'uppercase' as const,
+    letterSpacing: '0.5px',
+  },
+  daysBadge: {
+    background: '#F5E4B0',
+    color: '#9B7A30',
+    borderRadius: 6,
+    padding: '3px 10px',
+    fontSize: 12,
+    fontWeight: 700,
+    marginRight: 14,
+    whiteSpace: 'nowrap' as const,
+  },
+  todayBadge: {
+    background: '#D4A84A',
+    color: '#3C2A18',
+    borderRadius: 6,
+    padding: '3px 10px',
+    fontSize: 12,
+    fontWeight: 700,
     marginRight: 14,
     whiteSpace: 'nowrap' as const,
   },

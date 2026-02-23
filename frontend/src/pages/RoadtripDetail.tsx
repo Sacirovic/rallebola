@@ -4,7 +4,7 @@ import { useAuth } from '../context/AuthContext'
 import client from '../api/client'
 
 interface Member { id: number; name: string; email: string }
-interface Todo   { id: number; text: string; done: boolean }
+interface Todo   { id: number; text: string; done: boolean; created_by_name: string | null }
 interface Roadtrip {
   id: number
   name: string
@@ -249,13 +249,18 @@ export default function RoadtripDetail() {
                   >
                     {todo.done ? '✓' : ''}
                   </button>
-                  <span style={{
-                    ...s.todoText,
-                    textDecoration: todo.done ? 'line-through' : 'none',
-                    color: todo.done ? '#A08060' : '#3C2A18',
-                  }}>
-                    {todo.text}
-                  </span>
+                  <div style={s.todoContent}>
+                    <span style={{
+                      ...s.todoText,
+                      textDecoration: todo.done ? 'line-through' : 'none',
+                      color: todo.done ? '#A08060' : '#3C2A18',
+                    }}>
+                      {todo.text}
+                    </span>
+                    {todo.created_by_name && (
+                      <span style={s.todoCreator}>by {todo.created_by_name}</span>
+                    )}
+                  </div>
                   <button style={s.deleteTodoBtn} onClick={() => deleteTodo(todo.id)} title="Delete">
                     ✕
                   </button>
@@ -401,7 +406,9 @@ const s: Record<string, React.CSSProperties> = {
   checkboxDone: {
     background: '#89B86E', border: '2px solid #6B9652', color: '#FDFCF8',
   },
-  todoText: { flex: 1, fontSize: 14, wordBreak: 'break-word' as const },
+  todoContent: { flex: 1, display: 'flex', flexDirection: 'column' as const, gap: 2, minWidth: 0 },
+  todoText: { fontSize: 14, wordBreak: 'break-word' as const },
+  todoCreator: { fontSize: 11, color: '#A08060' },
   deleteTodoBtn: {
     background: 'none', border: 'none', color: '#C4A882',
     cursor: 'pointer', fontSize: 13, padding: '0 4px', flexShrink: 0,

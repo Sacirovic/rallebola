@@ -80,7 +80,10 @@ class RoadtripController
         $roadtrip['members'] = $stmt->fetchAll();
 
         $stmt = $pdo->prepare(
-            'SELECT * FROM roadtrip_todos WHERE roadtrip_id = ? ORDER BY created_at ASC'
+            'SELECT rt.*, u.name AS created_by_name
+             FROM roadtrip_todos rt
+             LEFT JOIN users u ON u.id = rt.created_by
+             WHERE rt.roadtrip_id = ? ORDER BY rt.created_at ASC'
         );
         $stmt->execute([$roadtripId]);
         $todos = $stmt->fetchAll();
@@ -225,15 +228,11 @@ class RoadtripController
         }
 
         $pdo  = Database::getInstance();
-        $stmt = $pdo->prepare('INSERT INTO roadtrip_todos (roadtrip_id, text) VALUES (?, ?)');
-        $stmt->execute([$roadtripId, $text]);
+        $stmt = $pdo->prepare('INSERT INTO roadtrip_todos (roadtrip_id, text, created_by) VALUES (?, ?, ?)');
+        $stmt->execute([$roadtripId, $text, $userId]);
         $id = (int) $pdo->lastInsertId();
 
-        $stmt = $pdo->prepare('SELECT * FROM roadtrip_todos WHERE id = ?');
-        $stmt->execute([$id]);
-        $todo         = $stmt->fetch();
-        $todo['done'] = (bool) $todo['done'];
-        Response::json($todo, 201);
+        Response::json($this->fetchTodo($id), 201);
     }
 
     // PUT /roadtrips/:id/todos/:todoId
@@ -279,11 +278,7 @@ class RoadtripController
         );
         $stmt->execute($params);
 
-        $stmt = $pdo->prepare('SELECT * FROM roadtrip_todos WHERE id = ?');
-        $stmt->execute([$todoId]);
-        $todo         = $stmt->fetch();
-        $todo['done'] = (bool) $todo['done'];
-        Response::json($todo);
+        Response::json($this->fetchTodo($todoId));
     }
 
     // DELETE /roadtrips/:id/todos/:todoId
@@ -304,6 +299,21 @@ class RoadtripController
     }
 
     // ── Helpers ────────────────────────────────────────────────────────────
+
+    private function fetchTodo(int $todoId): array
+    {
+        $pdo  = Database::getInstance();
+        $stmt = $pdo->prepare(
+            'SELECT rt.*, u.name AS created_by_name
+             FROM roadtrip_todos rt
+             LEFT JOIN users u ON u.id = rt.created_by
+             WHERE rt.id = ?'
+        );
+        $stmt->execute([$todoId]);
+        $todo         = $stmt->fetch();
+        $todo['done'] = (bool) $todo['done'];
+        return $todo;
+    }
 
     private function getAccessibleRoadtrip(int $roadtripId, int $userId): array|false
     {
