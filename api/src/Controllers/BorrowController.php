@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace App\Controllers;
 
 use App\Database;
+use App\Mailer;
 use App\Response;
 
 class BorrowController
@@ -14,12 +15,15 @@ class BorrowController
         $itemId = (int) $vars['itemId'];
         $pdo    = Database::getInstance();
 
-        // Verify item exists and get list info
+        // Verify item exists and get list + owner info
         $stmt = $pdo->prepare(
-            'SELECT i.id, i.list_id, l.user_id AS owner_id,
+            'SELECT i.id, i.name AS item_name, i.list_id,
+                    l.name AS list_name, l.user_id AS owner_id,
+                    u.name AS owner_name, u.email AS owner_email,
                     ls.shared_with_user_id
              FROM items i
              JOIN lists l ON l.id = i.list_id
+             JOIN users u ON u.id = l.user_id
              LEFT JOIN list_shares ls ON ls.list_id = l.id AND ls.shared_with_user_id = ?
              WHERE i.id = ?'
         );
@@ -63,7 +67,25 @@ class BorrowController
             $stmt->execute([$id]);
         }
 
-        Response::json($stmt->fetch(), 201);
+        $result = $stmt->fetch();
+
+        // Send email notification to list owner (only on new requests)
+        if ($id !== 0) {
+            $requesterStmt = $pdo->prepare('SELECT name FROM users WHERE id = ?');
+            $requesterStmt->execute([$userId]);
+            $requester = $requesterStmt->fetch();
+
+            Mailer::sendBorrowRequestNotification(
+                ownerEmail:     $item['owner_email'],
+                ownerName:      $item['owner_name'],
+                requesterName:  $requester['name'],
+                itemName:       $item['item_name'],
+                listName:       $item['list_name'],
+                message:        $message
+            );
+        }
+
+        Response::json($result, 201);
     }
 
     public function incoming(array $vars, ?int $userId): void
