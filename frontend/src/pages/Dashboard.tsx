@@ -21,20 +21,54 @@ interface Roadtrip {
   owner_name: string
 }
 
+interface BorrowRequest {
+  id: number
+  item_id: number
+  item_name: string
+  list_id: number
+  list_name: string
+  status: 'pending' | 'approved' | 'rejected' | 'returned'
+  message: string | null
+  created_at: string
+  updated_at: string
+  requester_user_id?: number
+  requester_name?: string
+  requester_email?: string
+  owner_name?: string
+}
+
+type BorrowTab = 'incoming' | 'outgoing'
+
+const statusStyles: Record<string, React.CSSProperties> = {
+  pending:  { background: '#F5E4B0', color: '#9B7A30', borderRadius: 6, padding: '3px 10px', fontSize: 12, fontWeight: 600 },
+  approved: { background: '#D8EDCC', color: '#4D6E3A', borderRadius: 6, padding: '3px 10px', fontSize: 12, fontWeight: 600 },
+  rejected: { background: '#FBEEE8', color: '#C46A5A', borderRadius: 6, padding: '3px 10px', fontSize: 12, fontWeight: 600 },
+  returned: { background: '#F2EAD8', color: '#9B7A5A', borderRadius: 6, padding: '3px 10px', fontSize: 12, fontWeight: 600 },
+}
+
 export default function Dashboard() {
   const { user, logout } = useAuth()
   const navigate = useNavigate()
   const [sharedLists, setSharedLists] = useState<InventoryList[]>([])
   const [upcomingTrips, setUpcomingTrips] = useState<Roadtrip[]>([])
+  const [borrowTab, setBorrowTab] = useState<BorrowTab>('incoming')
+  const [incoming, setIncoming] = useState<BorrowRequest[]>([])
+  const [outgoing, setOutgoing] = useState<BorrowRequest[]>([])
+  const [borrowLoading, setBorrowLoading] = useState(true)
 
   useEffect(() => { fetchData() }, [])
 
   const fetchData = async () => {
-    const [sharedRes, tripsRes] = await Promise.all([
+    const [sharedRes, tripsRes, incRes, outRes] = await Promise.all([
       client.get('/shared-with-me'),
       client.get('/roadtrips').catch(() => ({ data: [] })),
+      client.get('/borrow-requests/incoming'),
+      client.get('/borrow-requests/outgoing'),
     ])
     setSharedLists(sharedRes.data)
+    setIncoming(incRes.data)
+    setOutgoing(outRes.data)
+    setBorrowLoading(false)
 
     const today = new Date()
     today.setHours(0, 0, 0, 0)
@@ -48,6 +82,18 @@ export default function Dashboard() {
     setUpcomingTrips(upcoming)
   }
 
+  const updateBorrowStatus = async (id: number, status: string) => {
+    await client.patch(`/borrow-requests/${id}`, { status })
+    const [incRes, outRes] = await Promise.all([
+      client.get('/borrow-requests/incoming'),
+      client.get('/borrow-requests/outgoing'),
+    ])
+    setIncoming(incRes.data)
+    setOutgoing(outRes.data)
+  }
+
+  const borrowRows = borrowTab === 'incoming' ? incoming : outgoing
+
   return (
     <div style={s.page}>
       <header style={s.header} className="app-header">
@@ -56,8 +102,6 @@ export default function Dashboard() {
           <Link to="/my-lists" style={s.navLink}>📋 My Lists</Link>
           <span style={s.navDivider} className="nav-divider">·</span>
           <Link to="/roadtrips" style={s.navLink}>🚗 Road Trips</Link>
-          <span style={s.navDivider} className="nav-divider">·</span>
-          <Link to="/borrow-requests" style={s.navLink}>📦 Borrow Requests</Link>
           <span style={s.navDivider} className="nav-divider">·</span>
           <span style={s.navUser} className="nav-user">👤 {user?.name}</span>
           <button style={s.logoutBtn} onClick={() => logout().then(() => navigate('/login'))}>
@@ -100,6 +144,100 @@ export default function Dashboard() {
             </div>
           </section>
         )}
+
+        <section style={s.section}>
+          <h2 style={s.sectionTitle}>📦 Borrow Requests</h2>
+
+          <div style={s.tabs} className="tabs-container">
+            <button style={borrowTab === 'incoming' ? s.tabActive : s.tab} onClick={() => setBorrowTab('incoming')}>
+              Incoming
+              {incoming.length > 0 && <span style={s.badge}>{incoming.length}</span>}
+            </button>
+            <button style={borrowTab === 'outgoing' ? s.tabActive : s.tab} onClick={() => setBorrowTab('outgoing')}>
+              Outgoing
+              {outgoing.length > 0 && <span style={s.badge}>{outgoing.length}</span>}
+            </button>
+          </div>
+
+          {borrowLoading ? (
+            <p style={{ color: '#A08060', padding: 16 }}>Loading…</p>
+          ) : borrowRows.length === 0 ? (
+            <div style={s.emptyState}>
+              <span style={{ fontSize: 36 }}>🌾</span>
+              <p style={s.emptyText}>
+                {borrowTab === 'incoming'
+                  ? 'No one has requested to borrow anything yet.'
+                  : 'You have not made any borrow requests yet.'}
+              </p>
+            </div>
+          ) : (
+            <div style={s.tableWrap}>
+              <table style={s.table}>
+                <thead>
+                  <tr>
+                    <th style={s.th}>Item</th>
+                    <th style={s.th}>List</th>
+                    <th style={s.th}>{borrowTab === 'incoming' ? 'Requester' : 'Owner'}</th>
+                    <th style={s.th}>Message</th>
+                    <th style={s.th}>Status</th>
+                    <th style={s.th}>Actions</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {borrowRows.map((r, i) => {
+                    const rowBg = i % 2 === 0 ? '#FDFCF8' : '#F7F2E8'
+                    const td: React.CSSProperties = {
+                      padding: '11px 16px',
+                      borderBottom: '1px solid #EDE6D4',
+                      fontSize: 14, color: '#3C2A18',
+                      verticalAlign: 'middle',
+                      background: rowBg,
+                    }
+                    return (
+                      <tr key={r.id}>
+                        <td style={{ ...td, fontWeight: 500 }}>{r.item_name}</td>
+                        <td style={td}>
+                          <Link to={`/lists/${r.list_id}`} style={{ color: '#6B9652', fontWeight: 500, textDecoration: 'none' }}>
+                            {r.list_name}
+                          </Link>
+                        </td>
+                        <td style={td}>
+                          {borrowTab === 'incoming' ? (
+                            <>
+                              <div style={{ fontWeight: 600 }}>{r.requester_name}</div>
+                              <div style={{ fontSize: 12, color: '#A08060' }}>{r.requester_email}</div>
+                            </>
+                          ) : (
+                            <span style={{ fontWeight: 600 }}>{r.owner_name}</span>
+                          )}
+                        </td>
+                        <td style={{ ...td, color: '#A08060' }}>{r.message ?? '—'}</td>
+                        <td style={td}>
+                          <span style={statusStyles[r.status] ?? {}}>{r.status}</span>
+                        </td>
+                        <td style={td}>
+                          {borrowTab === 'incoming' && r.status === 'pending' && (
+                            <div style={{ display: 'flex', gap: 6 }}>
+                              <button style={approveBtn} onClick={() => updateBorrowStatus(r.id, 'approved')}>Approve</button>
+                              <button style={rejectBtn} onClick={() => updateBorrowStatus(r.id, 'rejected')}>Reject</button>
+                            </div>
+                          )}
+                          {borrowTab === 'outgoing' && r.status === 'approved' && (
+                            <button style={returnBtn} onClick={() => updateBorrowStatus(r.id, 'returned')}>Mark Returned</button>
+                          )}
+                          {!((borrowTab === 'incoming' && r.status === 'pending') ||
+                             (borrowTab === 'outgoing' && r.status === 'approved')) && (
+                            <span style={{ color: '#C4A882' }}>—</span>
+                          )}
+                        </td>
+                      </tr>
+                    )
+                  })}
+                </tbody>
+              </table>
+            </div>
+          )}
+        </section>
 
         <section style={s.section}>
           <h2 style={s.sectionTitle}>🤝 Shared with Me</h2>
@@ -228,6 +366,35 @@ const s: Record<string, React.CSSProperties> = {
     marginRight: 14,
     whiteSpace: 'nowrap' as const,
   },
+  tabs: { display: 'flex', gap: 6, marginBottom: 24 },
+  tab: {
+    padding: '9px 22px', background: '#FDFCF8',
+    border: '1.5px solid #DDD0B0', borderRadius: 8,
+    cursor: 'pointer', fontWeight: 500, fontSize: 14, color: '#6E4E30',
+    display: 'flex', alignItems: 'center', gap: 8,
+  },
+  tabActive: {
+    padding: '9px 22px', background: '#5C7A48',
+    border: '1.5px solid #5C7A48', borderRadius: 8,
+    cursor: 'pointer', fontWeight: 700, fontSize: 14, color: '#F5E4B0',
+    display: 'flex', alignItems: 'center', gap: 8,
+  },
+  badge: {
+    background: '#D4A84A', color: '#FDFCF8',
+    borderRadius: 10, padding: '1px 7px', fontSize: 11, fontWeight: 700,
+  },
+  tableWrap: { overflowX: 'auto' as const },
+  table: {
+    width: '100%', borderCollapse: 'collapse' as const,
+    background: '#FDFCF8', borderRadius: 12, overflow: 'hidden',
+    border: '1.5px solid #DDD0B0',
+  },
+  th: {
+    padding: '12px 16px', textAlign: 'left' as const,
+    fontWeight: 600, fontSize: 11, letterSpacing: '0.7px',
+    textTransform: 'uppercase' as const, color: '#A08060',
+    background: '#F2EAD8', borderBottom: '1.5px solid #DDD0B0',
+  },
   tripCard: {
     background: '#FDFCF8',
     border: '1.5px solid #DDD0B0',
@@ -285,4 +452,20 @@ const s: Record<string, React.CSSProperties> = {
     marginRight: 14,
     whiteSpace: 'nowrap' as const,
   },
+}
+
+const approveBtn: React.CSSProperties = {
+  background: '#D8EDCC', color: '#4D6E3A',
+  border: '1px solid #B8D89C', borderRadius: 6,
+  padding: '4px 10px', cursor: 'pointer', fontSize: 12, fontWeight: 600,
+}
+const rejectBtn: React.CSSProperties = {
+  background: '#FBEEE8', color: '#C46A5A',
+  border: '1px solid #F0C4BC', borderRadius: 6,
+  padding: '4px 10px', cursor: 'pointer', fontSize: 12, fontWeight: 600,
+}
+const returnBtn: React.CSSProperties = {
+  background: '#F2EAD8', color: '#9B7A5A',
+  border: '1px solid #DDD0B0', borderRadius: 6,
+  padding: '4px 10px', cursor: 'pointer', fontSize: 12, fontWeight: 600,
 }

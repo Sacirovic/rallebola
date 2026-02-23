@@ -90,8 +90,6 @@ export default function MyLists() {
           <span style={s.navDivider} className="nav-divider">·</span>
           <Link to="/roadtrips" style={s.navLink}>🚗 Road Trips</Link>
           <span style={s.navDivider} className="nav-divider">·</span>
-          <Link to="/borrow-requests" style={s.navLink}>📦 Borrow Requests</Link>
-          <span style={s.navDivider} className="nav-divider">·</span>
           <span style={s.navUser} className="nav-user">👤 {user?.name}</span>
           <button style={s.logoutBtn} onClick={() => logout().then(() => navigate('/login'))}>
             Sign out
