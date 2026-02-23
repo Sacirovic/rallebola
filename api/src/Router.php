@@ -57,6 +57,7 @@ class Router
             $r->addRoute('POST',   '/roadtrips/{id}/members',              [RoadtripController::class, 'addMember']);
             $r->addRoute('DELETE', '/roadtrips/{id}/members/{userId}',     [RoadtripController::class, 'removeMember']);
             $r->addRoute('POST',   '/roadtrips/{id}/todos',                [RoadtripController::class, 'storeTodo']);
+            $r->addRoute('PUT',    '/roadtrips/{id}/todos/reorder',        [RoadtripController::class, 'reorderTodos']);
             $r->addRoute('PUT',    '/roadtrips/{id}/todos/{todoId}',       [RoadtripController::class, 'updateTodo']);
             $r->addRoute('DELETE', '/roadtrips/{id}/todos/{todoId}',       [RoadtripController::class, 'destroyTodo']);
 

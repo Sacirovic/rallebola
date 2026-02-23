@@ -2,9 +2,24 @@ import { useState, useEffect, FormEvent } from 'react'
 import { useParams, Link, useNavigate } from 'react-router-dom'
 import { useAuth } from '../context/AuthContext'
 import client from '../api/client'
+import {
+  DndContext,
+  DragEndEvent,
+  PointerSensor,
+  closestCenter,
+  useSensor,
+  useSensors,
+} from '@dnd-kit/core'
+import {
+  SortableContext,
+  arrayMove,
+  useSortable,
+  verticalListSortingStrategy,
+} from '@dnd-kit/sortable'
+import { CSS } from '@dnd-kit/utilities'
 
-interface Member { id: number; name: string; email: string }
-interface Todo   { id: number; text: string; done: boolean; created_by_name: string | null }
+interface Member  { id: number; name: string; email: string }
+interface Todo    { id: number; text: string; done: boolean; created_by_name: string | null }
 interface Roadtrip {
   id: number
   name: string
@@ -14,6 +29,58 @@ interface Roadtrip {
   members: Member[]
   todos: Todo[]
 }
+
+// ── Sortable todo row ──────────────────────────────────────────────────────
+
+function SortableTodoItem({ todo, onToggle, onDelete }: {
+  todo: Todo
+  onToggle: () => void
+  onDelete: () => void
+}) {
+  const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({ id: todo.id })
+
+  return (
+    <div
+      ref={setNodeRef}
+      style={{
+        ...s.todoItem,
+        background: todo.done ? '#F2EAD8' : '#FDFCF8',
+        transform: CSS.Transform.toString(transform),
+        transition,
+        opacity: isDragging ? 0.4 : 1,
+        zIndex: isDragging ? 1 : undefined,
+        boxShadow: isDragging ? '0 4px 12px rgba(0,0,0,0.12)' : undefined,
+      }}
+      {...attributes}
+    >
+      <div style={s.dragHandle} {...listeners} title="Drag to reorder">
+        ⠿
+      </div>
+      <button
+        style={{ ...s.checkbox, ...(todo.done ? s.checkboxDone : {}) }}
+        onClick={onToggle}
+        title={todo.done ? 'Mark undone' : 'Mark done'}
+      >
+        {todo.done ? '✓' : ''}
+      </button>
+      <div style={s.todoContent}>
+        <span style={{
+          ...s.todoText,
+          textDecoration: todo.done ? 'line-through' : 'none',
+          color: todo.done ? '#A08060' : '#3C2A18',
+        }}>
+          {todo.text}
+        </span>
+        {todo.created_by_name && (
+          <span style={s.todoCreator}>by {todo.created_by_name}</span>
+        )}
+      </div>
+      <button style={s.deleteTodoBtn} onClick={onDelete} title="Delete">✕</button>
+    </div>
+  )
+}
+
+// ── Page ───────────────────────────────────────────────────────────────────
 
 export default function RoadtripDetail() {
   const { id } = useParams<{ id: string }>()
@@ -30,6 +97,10 @@ export default function RoadtripDetail() {
   const [memberEmail, setMemberEmail] = useState('')
   const [addingMember, setAddingMember] = useState(false)
   const [memberError, setMemberError] = useState('')
+
+  const sensors = useSensors(
+    useSensor(PointerSensor, { activationConstraint: { distance: 8 } })
+  )
 
   useEffect(() => { fetchData() }, [roadtripId])
 
@@ -88,6 +159,23 @@ export default function RoadtripDetail() {
     )
   }
 
+  const handleDragEnd = (event: DragEndEvent) => {
+    const { active, over } = event
+    if (!over || active.id === over.id || !roadtrip) return
+
+    const oldIndex = roadtrip.todos.findIndex((t) => t.id === active.id)
+    const newIndex = roadtrip.todos.findIndex((t) => t.id === over.id)
+    const reordered = arrayMove(roadtrip.todos, oldIndex, newIndex)
+
+    setRoadtrip((prev) => prev ? { ...prev, todos: reordered } : prev)
+
+    client.put(`/roadtrips/${roadtripId}/todos/reorder`, {
+      ids: reordered.map((t) => t.id),
+    }).catch(() => {
+      setRoadtrip((prev) => prev ? { ...prev, todos: roadtrip.todos } : prev)
+    })
+  }
+
   const addMember = async (e: FormEvent) => {
     e.preventDefault()
     if (!memberEmail.trim()) return
@@ -114,7 +202,7 @@ export default function RoadtripDetail() {
 
   if (!roadtrip) return <div style={{ padding: 32, color: '#A08060' }}>Loading…</div>
 
-  const isOwner  = roadtrip.owner_id === user?.id
+  const isOwner   = roadtrip.owner_id === user?.id
   const doneTodos = roadtrip.todos.filter((t) => t.done).length
 
   const formatDate = (d: string | null) => {
@@ -181,11 +269,7 @@ export default function RoadtripDetail() {
                 <span style={s.memberName}>{m.name}</span>
                 <span style={s.memberEmail}>{m.email}</span>
                 {isOwner && (
-                  <button
-                    style={s.removeMemberBtn}
-                    onClick={() => removeMember(m.id)}
-                    title="Remove"
-                  >✕</button>
+                  <button style={s.removeMemberBtn} onClick={() => removeMember(m.id)} title="Remove">✕</button>
                 )}
               </div>
             ))}
@@ -236,37 +320,20 @@ export default function RoadtripDetail() {
               <p style={s.emptyText}>No tasks yet. Add your first one above.</p>
             </div>
           ) : (
-            <div style={s.todoList}>
-              {roadtrip.todos.map((todo) => (
-                <div
-                  key={todo.id}
-                  style={{ ...s.todoItem, background: todo.done ? '#F2EAD8' : '#FDFCF8' }}
-                >
-                  <button
-                    style={{ ...s.checkbox, ...(todo.done ? s.checkboxDone : {}) }}
-                    onClick={() => toggleTodo(todo)}
-                    title={todo.done ? 'Mark undone' : 'Mark done'}
-                  >
-                    {todo.done ? '✓' : ''}
-                  </button>
-                  <div style={s.todoContent}>
-                    <span style={{
-                      ...s.todoText,
-                      textDecoration: todo.done ? 'line-through' : 'none',
-                      color: todo.done ? '#A08060' : '#3C2A18',
-                    }}>
-                      {todo.text}
-                    </span>
-                    {todo.created_by_name && (
-                      <span style={s.todoCreator}>by {todo.created_by_name}</span>
-                    )}
-                  </div>
-                  <button style={s.deleteTodoBtn} onClick={() => deleteTodo(todo.id)} title="Delete">
-                    ✕
-                  </button>
+            <DndContext sensors={sensors} collisionDetection={closestCenter} onDragEnd={handleDragEnd}>
+              <SortableContext items={roadtrip.todos.map((t) => t.id)} strategy={verticalListSortingStrategy}>
+                <div style={s.todoList}>
+                  {roadtrip.todos.map((todo) => (
+                    <SortableTodoItem
+                      key={todo.id}
+                      todo={todo}
+                      onToggle={() => toggleTodo(todo)}
+                      onDelete={() => deleteTodo(todo.id)}
+                    />
+                  ))}
                 </div>
-              ))}
-            </div>
+              </SortableContext>
+            </DndContext>
           )}
         </section>
 
@@ -393,8 +460,13 @@ const s: Record<string, React.CSSProperties> = {
   emptyText: { color: '#A08060', fontSize: 14 },
   todoList: { display: 'flex', flexDirection: 'column' as const, gap: 6 },
   todoItem: {
-    display: 'flex', alignItems: 'center', gap: 12,
-    border: '1.5px solid #DDD0B0', borderRadius: 8, padding: '10px 14px',
+    display: 'flex', alignItems: 'center', gap: 10,
+    border: '1.5px solid #DDD0B0', borderRadius: 8, padding: '10px 12px',
+  },
+  dragHandle: {
+    color: '#C4A882', fontSize: 16, cursor: 'grab',
+    padding: '0 2px', flexShrink: 0, userSelect: 'none' as const,
+    touchAction: 'none',
   },
   checkbox: {
     width: 22, height: 22, borderRadius: 6,

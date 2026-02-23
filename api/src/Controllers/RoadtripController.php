@@ -83,7 +83,7 @@ class RoadtripController
             'SELECT rt.*, u.name AS created_by_name
              FROM roadtrip_todos rt
              LEFT JOIN users u ON u.id = rt.created_by
-             WHERE rt.roadtrip_id = ? ORDER BY rt.created_at ASC'
+             WHERE rt.roadtrip_id = ? ORDER BY rt.position ASC, rt.created_at ASC'
         );
         $stmt->execute([$roadtripId]);
         $todos = $stmt->fetchAll();
@@ -279,6 +279,35 @@ class RoadtripController
         $stmt->execute($params);
 
         Response::json($this->fetchTodo($todoId));
+    }
+
+    // PUT /roadtrips/:id/todos/reorder
+    public function reorderTodos(array $vars, ?int $userId): void
+    {
+        $roadtripId = (int) $vars['id'];
+
+        if (!$this->getAccessibleRoadtrip($roadtripId, $userId)) {
+            Response::notFound('Roadtrip not found');
+            return;
+        }
+
+        $body = json_decode(file_get_contents('php://input'), true) ?? [];
+        $ids  = $body['ids'] ?? [];
+
+        if (empty($ids)) {
+            Response::error('ids is required');
+            return;
+        }
+
+        $pdo  = Database::getInstance();
+        $stmt = $pdo->prepare(
+            'UPDATE roadtrip_todos SET position = ? WHERE id = ? AND roadtrip_id = ?'
+        );
+        foreach (array_values($ids) as $position => $todoId) {
+            $stmt->execute([$position, (int) $todoId, $roadtripId]);
+        }
+
+        Response::json(['message' => 'Reordered']);
     }
 
     // DELETE /roadtrips/:id/todos/:todoId
