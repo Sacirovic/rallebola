@@ -10,6 +10,7 @@ services:
     volumes:
       - db-data:/var/lib/mysql
       - ./api/migrations/001_init.sql:/docker-entrypoint-initdb.d/001_init.sql:ro
+      - ./api/migrations/002_roadtrips.sql:/docker-entrypoint-initdb.d/002_roadtrips.sql:ro
     ports:
       - "127.0.0.1:3306:3306"
     healthcheck:
