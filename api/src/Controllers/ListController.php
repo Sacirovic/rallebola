@@ -12,9 +12,19 @@ class ListController
     public function index(array $vars, ?int $userId): void
     {
         $pdo  = Database::getInstance();
-        $stmt = $pdo->prepare('SELECT * FROM lists WHERE user_id = ? ORDER BY updated_at DESC');
+        $stmt = $pdo->prepare(
+            'SELECT l.*,
+                    EXISTS(SELECT 1 FROM list_shares ls WHERE ls.list_id = l.id) AS is_shared
+             FROM lists l
+             WHERE l.user_id = ?
+             ORDER BY l.updated_at DESC'
+        );
         $stmt->execute([$userId]);
-        Response::json($stmt->fetchAll());
+        $rows = $stmt->fetchAll();
+        foreach ($rows as &$row) {
+            $row['is_shared'] = (bool) $row['is_shared'];
+        }
+        Response::json($rows);
     }
 
     public function store(array $vars, ?int $userId): void

@@ -11,6 +11,7 @@ interface InventoryList {
   updated_at: string
   permission?: string
   owner_name?: string
+  is_shared?: boolean
 }
 
 interface Roadtrip {
@@ -206,6 +207,18 @@ export default function Dashboard() {
                       Updated {new Date(list.updated_at).toLocaleDateString()}
                     </span>
                   </div>
+                  {list.is_shared && (
+                    <span style={s.sharedIcon} title="Shared with others">
+                      <svg width="16" height="16" viewBox="0 0 20 20" fill="none" xmlns="http://www.w3.org/2000/svg">
+                        <circle cx="5" cy="13" r="2.5" stroke="#89B86E" strokeWidth="1.6"/>
+                        <circle cx="15" cy="13" r="2.5" stroke="#89B86E" strokeWidth="1.6"/>
+                        <circle cx="10" cy="5" r="2.5" stroke="#89B86E" strokeWidth="1.6"/>
+                        <line x1="7.2" y1="6.8" x2="12.8" y2="6.8" stroke="#89B86E" strokeWidth="1.4" strokeLinecap="round"/>
+                        <line x1="6.3" y1="11.2" x2="8.8" y2="7.8" stroke="#89B86E" strokeWidth="1.4" strokeLinecap="round"/>
+                        <line x1="13.7" y1="11.2" x2="11.2" y2="7.8" stroke="#89B86E" strokeWidth="1.4" strokeLinecap="round"/>
+                      </svg>
+                    </span>
+                  )}
                   <button style={s.renameBtn} onClick={() => startRename(list)} title="Rename">✏</button>
                   <button style={s.deleteBtn} onClick={() => deleteList(list.id)} title="Delete">✕</button>
                 </div>
@@ -384,6 +397,13 @@ const s: Record<string, React.CSSProperties> = {
     padding: '4px 9px',
     cursor: 'pointer',
     fontSize: 13,
+  },
+  sharedIcon: {
+    display: 'flex',
+    alignItems: 'center',
+    padding: '0 8px',
+    opacity: 0.75,
+    flexShrink: 0,
   },
   renameBtn: {
     background: 'none',
