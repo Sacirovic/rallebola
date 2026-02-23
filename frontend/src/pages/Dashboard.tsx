@@ -92,6 +92,8 @@ export default function Dashboard() {
       <header style={s.header} className="app-header">
         <span style={s.logo}>🌲 Rallebola</span>
         <nav style={s.nav} className="app-nav">
+          <Link to="/roadtrips" style={s.navLink}>🚗 Road Trips</Link>
+          <span style={s.navDivider} className="nav-divider">·</span>
           <Link to="/borrow-requests" style={s.navLink}>📦 Borrow Requests</Link>
           <span style={s.navDivider} className="nav-divider">·</span>
           <span style={s.navUser} className="nav-user">👤 {user?.name}</span>

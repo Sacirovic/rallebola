@@ -6,6 +6,8 @@ import Register from './pages/Register'
 import Dashboard from './pages/Dashboard'
 import ListDetail from './pages/ListDetail'
 import BorrowRequests from './pages/BorrowRequests'
+import Roadtrips from './pages/Roadtrips'
+import RoadtripDetail from './pages/RoadtripDetail'
 
 export default function App() {
   return (
@@ -18,6 +20,8 @@ export default function App() {
             <Route path="/" element={<Dashboard />} />
             <Route path="/lists/:id" element={<ListDetail />} />
             <Route path="/borrow-requests" element={<BorrowRequests />} />
+            <Route path="/roadtrips" element={<Roadtrips />} />
+            <Route path="/roadtrips/:id" element={<RoadtripDetail />} />
           </Route>
           <Route path="*" element={<Navigate to="/" replace />} />
         </Routes>

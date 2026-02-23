@@ -12,6 +12,7 @@ use App\Controllers\ListController;
 use App\Controllers\ItemController;
 use App\Controllers\ShareController;
 use App\Controllers\BorrowController;
+use App\Controllers\RoadtripController;
 
 use function FastRoute\simpleDispatcher;
 
@@ -46,6 +47,18 @@ class Router
 
             // Shared-with-me (protected)
             $r->addRoute('GET', '/shared-with-me', [ListController::class, 'sharedWithMe']);
+
+            // Roadtrips (protected)
+            $r->addRoute('GET',    '/roadtrips',                           [RoadtripController::class, 'index']);
+            $r->addRoute('POST',   '/roadtrips',                           [RoadtripController::class, 'store']);
+            $r->addRoute('GET',    '/roadtrips/{id}',                      [RoadtripController::class, 'show']);
+            $r->addRoute('PUT',    '/roadtrips/{id}',                      [RoadtripController::class, 'update']);
+            $r->addRoute('DELETE', '/roadtrips/{id}',                      [RoadtripController::class, 'destroy']);
+            $r->addRoute('POST',   '/roadtrips/{id}/members',              [RoadtripController::class, 'addMember']);
+            $r->addRoute('DELETE', '/roadtrips/{id}/members/{userId}',     [RoadtripController::class, 'removeMember']);
+            $r->addRoute('POST',   '/roadtrips/{id}/todos',                [RoadtripController::class, 'storeTodo']);
+            $r->addRoute('PUT',    '/roadtrips/{id}/todos/{todoId}',       [RoadtripController::class, 'updateTodo']);
+            $r->addRoute('DELETE', '/roadtrips/{id}/todos/{todoId}',       [RoadtripController::class, 'destroyTodo']);
 
             // Borrow requests (protected)
             $r->addRoute('POST',  '/items/{itemId}/borrow-requests', [BorrowController::class, 'store']);
