@@ -8,6 +8,7 @@ import ListDetail from './pages/ListDetail'
 import BorrowRequests from './pages/BorrowRequests'
 import Roadtrips from './pages/Roadtrips'
 import RoadtripDetail from './pages/RoadtripDetail'
+import MyLists from './pages/MyLists'
 
 export default function App() {
   return (
@@ -18,6 +19,7 @@ export default function App() {
           <Route path="/register" element={<Register />} />
           <Route element={<ProtectedRoute />}>
             <Route path="/" element={<Dashboard />} />
+            <Route path="/my-lists" element={<MyLists />} />
             <Route path="/lists/:id" element={<ListDetail />} />
             <Route path="/borrow-requests" element={<BorrowRequests />} />
             <Route path="/roadtrips" element={<Roadtrips />} />
