@@ -1,4 +1,4 @@
-import { useState, useEffect, FormEvent } from 'react'
+import { useState, useEffect, useRef, FormEvent, KeyboardEvent } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
 import { useAuth } from '../context/AuthContext'
 import client from '../api/client'
@@ -21,8 +21,15 @@ export default function Dashboard() {
   const [newListName, setNewListName] = useState('')
   const [creating, setCreating] = useState(false)
   const [error, setError] = useState('')
+  const [renamingId, setRenamingId] = useState<number | null>(null)
+  const [renameValue, setRenameValue] = useState('')
+  const renameRef = useRef<HTMLInputElement>(null)
 
   useEffect(() => { fetchLists() }, [])
+
+  useEffect(() => {
+    if (renamingId !== null) renameRef.current?.focus()
+  }, [renamingId])
 
   const fetchLists = async () => {
     const [myRes, sharedRes] = await Promise.all([
@@ -47,6 +54,31 @@ export default function Dashboard() {
     } finally {
       setCreating(false)
     }
+  }
+
+  const startRename = (list: InventoryList) => {
+    setRenamingId(list.id)
+    setRenameValue(list.name)
+  }
+
+  const cancelRename = () => {
+    setRenamingId(null)
+    setRenameValue('')
+  }
+
+  const saveRename = async (id: number) => {
+    const trimmed = renameValue.trim()
+    if (!trimmed) { cancelRename(); return }
+    try {
+      const res = await client.put(`/lists/${id}`, { name: trimmed })
+      setMyLists((prev) => prev.map((l) => l.id === id ? { ...l, name: res.data.name } : l))
+    } catch (_) {}
+    cancelRename()
+  }
+
+  const handleRenameKey = (e: KeyboardEvent, id: number) => {
+    if (e.key === 'Enter') saveRename(id)
+    if (e.key === 'Escape') cancelRename()
   }
 
   const deleteList = async (id: number) => {
@@ -98,14 +130,27 @@ export default function Dashboard() {
                 <div key={list.id} style={s.listCard}>
                   <div style={s.cardAccent} />
                   <div style={s.cardBody}>
-                    <Link to={`/lists/${list.id}`} style={s.cardTitle}>{list.name}</Link>
+                    {renamingId === list.id ? (
+                      <div style={s.renameRow}>
+                        <input
+                          ref={renameRef}
+                          style={s.renameInput}
+                          value={renameValue}
+                          onChange={(e) => setRenameValue(e.target.value)}
+                          onKeyDown={(e) => handleRenameKey(e, list.id)}
+                        />
+                        <button style={s.renameSave} onClick={() => saveRename(list.id)}>✓</button>
+                        <button style={s.renameCancel} onClick={cancelRename}>✕</button>
+                      </div>
+                    ) : (
+                      <Link to={`/lists/${list.id}`} style={s.cardTitle}>{list.name}</Link>
+                    )}
                     <span style={s.cardMeta}>
                       Updated {new Date(list.updated_at).toLocaleDateString()}
                     </span>
                   </div>
-                  <button style={s.deleteBtn} onClick={() => deleteList(list.id)} title="Delete">
-                    ✕
-                  </button>
+                  <button style={s.renameBtn} onClick={() => startRename(list)} title="Rename">✏</button>
+                  <button style={s.deleteBtn} onClick={() => deleteList(list.id)} title="Delete">✕</button>
                 </div>
               ))}
             </div>
@@ -251,13 +296,56 @@ const s: Record<string, React.CSSProperties> = {
     textDecoration: 'none',
   },
   cardMeta: { fontSize: 12, color: '#A08060' },
+  renameRow: { display: 'flex', alignItems: 'center', gap: 6 },
+  renameInput: {
+    flex: 1,
+    padding: '5px 10px',
+    borderRadius: 6,
+    border: '1.5px solid #89B86E',
+    background: '#F7F2E8',
+    fontSize: 15,
+    fontFamily: "'Lora', Georgia, serif",
+    fontWeight: 600,
+    color: '#4D6E3A',
+    outline: 'none',
+  },
+  renameSave: {
+    background: '#E0EED0',
+    color: '#4D6E3A',
+    border: '1px solid #B8D89C',
+    borderRadius: 6,
+    padding: '4px 9px',
+    cursor: 'pointer',
+    fontSize: 13,
+    fontWeight: 700,
+  },
+  renameCancel: {
+    background: '#F2EAD8',
+    color: '#A08060',
+    border: '1px solid #DDD0B0',
+    borderRadius: 6,
+    padding: '4px 9px',
+    cursor: 'pointer',
+    fontSize: 13,
+  },
+  renameBtn: {
+    background: 'none',
+    border: 'none',
+    color: '#B8D89C',
+    fontSize: 15,
+    cursor: 'pointer',
+    padding: '0 10px',
+    alignSelf: 'stretch',
+    display: 'flex',
+    alignItems: 'center',
+  },
   deleteBtn: {
     background: 'none',
     border: 'none',
     color: '#C4A882',
     fontSize: 15,
     cursor: 'pointer',
-    padding: '0 18px',
+    padding: '0 14px',
     alignSelf: 'stretch',
     display: 'flex',
     alignItems: 'center',
