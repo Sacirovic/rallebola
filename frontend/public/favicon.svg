@@ -1,0 +1,54 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64">
+  <!-- Sky background -->
+  <rect width="64" height="64" rx="8" fill="#E8E0D8"/>
+
+  <!-- Chimney -->
+  <rect x="42" y="14" width="7" height="14" rx="1" fill="#B03030"/>
+  <rect x="40" y="13" width="11" height="3" rx="1" fill="#8A2020"/>
+  <!-- Chimney smoke wisps -->
+  <path d="M45.5 10 Q44 7 46 5 Q48 3 46.5 1" stroke="#CCBBBB" stroke-width="1.5" fill="none" stroke-linecap="round" opacity="0.6"/>
+  <path d="M47.5 11 Q46 8 48 6 Q50 4 48.5 2" stroke="#CCBBBB" stroke-width="1.2" fill="none" stroke-linecap="round" opacity="0.4"/>
+
+  <!-- Roof -->
+  <polygon points="8,30 32,10 56,30" fill="#C03030"/>
+  <polygon points="8,30 32,10 56,30" fill="none" stroke="#8A2020" stroke-width="1"/>
+  <!-- Roof shingles hint -->
+  <line x1="16" y1="26" x2="48" y2="26" stroke="#ffffff" stroke-width="0.7" opacity="0.4"/>
+  <line x1="12" y1="30" x2="52" y2="30" stroke="#ffffff" stroke-width="0.7" opacity="0.4"/>
+
+  <!-- Walls -->
+  <rect x="10" y="30" width="44" height="26" rx="1" fill="#CC2E2E"/>
+  <rect x="10" y="30" width="44" height="26" rx="1" fill="none" stroke="#8A2020" stroke-width="1"/>
+
+  <!-- Stone texture lines (white) -->
+  <line x1="10" y1="38" x2="54" y2="38" stroke="#ffffff" stroke-width="0.8" opacity="0.3"/>
+  <line x1="10" y1="46" x2="54" y2="46" stroke="#ffffff" stroke-width="0.8" opacity="0.3"/>
+  <line x1="22" y1="30" x2="22" y2="38" stroke="#ffffff" stroke-width="0.8" opacity="0.3"/>
+  <line x1="34" y1="38" x2="34" y2="46" stroke="#ffffff" stroke-width="0.8" opacity="0.3"/>
+  <line x1="46" y1="30" x2="46" y2="38" stroke="#ffffff" stroke-width="0.8" opacity="0.3"/>
+  <line x1="16" y1="46" x2="16" y2="56" stroke="#ffffff" stroke-width="0.8" opacity="0.3"/>
+  <line x1="42" y1="46" x2="42" y2="56" stroke="#ffffff" stroke-width="0.8" opacity="0.3"/>
+
+  <!-- Left window -->
+  <rect x="14" y="34" width="10" height="9" rx="1" fill="#C4E8F0" stroke="#ffffff" stroke-width="1.2"/>
+  <line x1="19" y1="34" x2="19" y2="43" stroke="#ffffff" stroke-width="0.8"/>
+  <line x1="14" y1="38.5" x2="24" y2="38.5" stroke="#ffffff" stroke-width="0.8"/>
+
+  <!-- Right window -->
+  <rect x="40" y="34" width="10" height="9" rx="1" fill="#C4E8F0" stroke="#ffffff" stroke-width="1.2"/>
+  <line x1="45" y1="34" x2="45" y2="43" stroke="#ffffff" stroke-width="0.8"/>
+  <line x1="40" y1="38.5" x2="50" y2="38.5" stroke="#ffffff" stroke-width="0.8"/>
+
+  <!-- Door -->
+  <rect x="26" y="42" width="12" height="14" rx="2" fill="#ffffff" stroke="#E0D0D0" stroke-width="1.2"/>
+  <path d="M26 44 Q32 40 38 44" fill="#E8E0E0" stroke="none"/>
+  <!-- Door knob -->
+  <circle cx="36" cy="50" r="1.2" fill="#C03030"/>
+
+  <!-- Ground -->
+  <rect x="0" y="56" width="64" height="8" rx="0" fill="#89B86E"/>
+  <!-- Grass tufts -->
+  <path d="M5 56 Q6 53 7 56" stroke="#6B9652" stroke-width="1" fill="none"/>
+  <path d="M58 56 Q59 53 60 56" stroke="#6B9652" stroke-width="1" fill="none"/>
+  <path d="M55 56 Q56.5 54 58 56" stroke="#6B9652" stroke-width="1" fill="none"/>
+</svg>
