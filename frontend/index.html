@@ -1,0 +1,51 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Rallebola — Farm Inventory</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link href="https://fonts.googleapis.com/css2?family=Lora:wght@400;500;600;700&family=Inter:wght@400;500;600&display=swap" rel="stylesheet" />
+    <style>
+      *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+      :root {
+        --forest-dark:   #4D6E3A;
+        --forest:        #6B9652;
+        --forest-mid:    #89B86E;
+        --forest-light:  #B8D89C;
+        --forest-pale:   #E0EED0;
+        --bark:          #9B7A5A;
+        --bark-light:    #C4A882;
+        --wheat:         #D4A84A;
+        --wheat-light:   #EAC870;
+        --wheat-pale:    #F5E4B0;
+        --cream:         #F7F2E8;
+        --parchment:     #F2EAD8;
+        --paper:         #FDFCF8;
+        --border:        #DDD0B0;
+        --border-light:  #EDE6D4;
+        --text:          #3C2A18;
+        --text-mid:      #6E4E30;
+        --text-muted:    #A08060;
+        --red:           #C46A5A;
+        --red-pale:      #FBEEE8;
+        --red-border:    #F0C4BC;
+      }
+      body {
+        font-family: 'Inter', system-ui, sans-serif;
+        background: var(--cream);
+        color: var(--text);
+        line-height: 1.5;
+      }
+      h1, h2, h3, h4 {
+        font-family: 'Lora', Georgia, serif;
+      }
+      a { color: var(--forest); }
+    </style>
+  </head>
+  <body>
+    <div id="root"></div>
+    <script type="module" src="/src/main.tsx"></script>
+  </body>
+</html>

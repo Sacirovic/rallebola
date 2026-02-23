@@ -1,0 +1,19 @@
+services:
+  frontend:
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile.prod
+    ports:
+      - "80:80"
+    volumes: []          # no source mounts — use the built image
+    depends_on:
+      - api
+
+  api:
+    volumes: []          # no source mounts — use the built image
+    ports:
+      - "127.0.0.1:8000:80"   # API only reachable locally, not from the internet
+
+  db:
+    ports:
+      - "127.0.0.1:3306:3306" # DB only reachable locally
