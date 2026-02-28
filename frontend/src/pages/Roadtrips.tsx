@@ -36,11 +36,12 @@ export default function Roadtrips() {
 
   const createRoadtrip = async (e: FormEvent) => {
     e.preventDefault()
-    if (!newName.trim()) return
+    const name = newName.trim() || (newDate ? formatDate(newDate) : '')
+    if (!name) return
     setCreating(true)
     setError('')
     try {
-      const res = await client.post('/roadtrips', { name: newName.trim(), date: newDate || null })
+      const res = await client.post('/roadtrips', { name, date: newDate || null })
       setRoadtrips((prev) => [res.data, ...prev])
       setNewName('')
       setNewDate('')
