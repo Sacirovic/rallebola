@@ -20,6 +20,7 @@ import { CSS } from '@dnd-kit/utilities'
 
 interface Member  { id: number; name: string; email: string }
 interface Todo    { id: number; text: string; done: boolean; created_by_name: string | null }
+interface GroceryItem { id: number; list_id: number; name: string; quantity: number; notes: string | null; checked: boolean; position: number }
 interface Roadtrip {
   id: number
   name: string
@@ -81,6 +82,55 @@ function SortableTodoItem({ todo, onToggle, onDelete }: {
   )
 }
 
+function SortableGroceryItem({ item, onToggle, onDelete }: {
+  item: GroceryItem
+  onToggle: () => void
+  onDelete: () => void
+}) {
+  const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({ id: item.id })
+
+  return (
+    <div
+      ref={setNodeRef}
+      style={{
+        ...s.groceryItem,
+        background: item.checked ? '#F9FAFB' : '#FFFFFF',
+        transform: CSS.Transform.toString(transform),
+        transition,
+        opacity: isDragging ? 0.5 : 1,
+        zIndex: isDragging ? 1 : undefined,
+        boxShadow: isDragging ? '0 4px 12px rgba(0,0,0,0.1)' : undefined,
+      }}
+      {...attributes}
+    >
+      <span className="material-icons-outlined" style={s.dragHandle} {...listeners} title="Drag to reorder">
+        drag_indicator
+      </span>
+      <button
+        style={{ ...s.checkbox, ...(item.checked ? s.checkboxDone : {}) }}
+        onClick={onToggle}
+      >
+        {item.checked && <span className="material-icons-outlined" style={{ fontSize: 13 }}>check</span>}
+      </button>
+      <span style={{
+        flex: 1, fontSize: 14, wordBreak: 'break-word' as const,
+        textDecoration: item.checked ? 'line-through' : 'none',
+        color: item.checked ? '#9CA3AF' : '#111827',
+      }}>
+        {item.name}
+        {item.quantity > 1 && (
+          <span style={{ marginLeft: 6, fontSize: 11, fontWeight: 600, color: '#16A34A', background: '#F0FDF4', borderRadius: 10, padding: '1px 7px' }}>
+            ×{item.quantity}
+          </span>
+        )}
+      </span>
+      <button style={s.deleteTodoBtn} onClick={onDelete} title="Delete">
+        <span className="material-icons-outlined" style={{ fontSize: 14 }}>close</span>
+      </button>
+    </div>
+  )
+}
+
 export default function RoadtripDetail() {
   const { id } = useParams<{ id: string }>()
   const { user } = useAuth()
@@ -96,12 +146,27 @@ export default function RoadtripDetail() {
   const [memberEmail, setMemberEmail] = useState('')
   const [addingMember, setAddingMember] = useState(false)
   const [memberError, setMemberError] = useState('')
+  const [activeTab, setActiveTab] = useState<'travellers' | 'todos' | 'grocery'>('todos')
+  const [groceryItems, setGroceryItems] = useState<GroceryItem[]>([])
+  const [groceryNewName, setGroceryNewName] = useState('')
+  const [groceryNewQty, setGroceryNewQty] = useState('1')
+  const [groceryAdding, setGroceryAdding] = useState(false)
+  const [groceryLoaded, setGroceryLoaded] = useState(false)
 
   const sensors = useSensors(
     useSensor(PointerSensor, { activationConstraint: { distance: 8 } })
   )
 
   useEffect(() => { fetchData() }, [roadtripId])
+
+  useEffect(() => {
+    if (activeTab === 'grocery' && roadtrip?.grocery_list_id && !groceryLoaded) {
+      client.get(`/lists/${roadtrip.grocery_list_id}/items`).then((res) => {
+        setGroceryItems(res.data.map((it: GroceryItem) => ({ ...it, checked: Boolean(it.checked) })))
+        setGroceryLoaded(true)
+      })
+    }
+  }, [activeTab, roadtrip?.grocery_list_id])
 
   const fetchData = async () => {
     try {
@@ -196,6 +261,47 @@ export default function RoadtripDetail() {
     )
   }
 
+  const addGroceryItem = async (e: FormEvent) => {
+    e.preventDefault()
+    if (!groceryNewName.trim() || !roadtrip?.grocery_list_id) return
+    setGroceryAdding(true)
+    try {
+      const res = await client.post(`/lists/${roadtrip.grocery_list_id}/items`, {
+        name: groceryNewName.trim(),
+        quantity: parseInt(groceryNewQty) || 1,
+        notes: null,
+      })
+      setGroceryItems((prev) => [...prev, { ...res.data, checked: false }])
+      setGroceryNewName('')
+      setGroceryNewQty('1')
+    } finally {
+      setGroceryAdding(false)
+    }
+  }
+
+  const toggleGroceryItem = async (item: GroceryItem) => {
+    if (!roadtrip?.grocery_list_id) return
+    const res = await client.put(`/lists/${roadtrip.grocery_list_id}/items/${item.id}`, { checked: !item.checked })
+    setGroceryItems((prev) => prev.map((it) => it.id === item.id ? { ...res.data, checked: Boolean(res.data.checked) } : it))
+  }
+
+  const deleteGroceryItem = async (itemId: number) => {
+    if (!roadtrip?.grocery_list_id) return
+    await client.delete(`/lists/${roadtrip.grocery_list_id}/items/${itemId}`)
+    setGroceryItems((prev) => prev.filter((it) => it.id !== itemId))
+  }
+
+  const handleGroceryDragEnd = (event: DragEndEvent) => {
+    const { active, over } = event
+    if (!over || active.id === over.id || !roadtrip?.grocery_list_id) return
+    const oldIndex = groceryItems.findIndex((it) => it.id === active.id)
+    const newIndex = groceryItems.findIndex((it) => it.id === over.id)
+    const reordered = arrayMove(groceryItems, oldIndex, newIndex)
+    setGroceryItems(reordered)
+    client.put(`/lists/${roadtrip.grocery_list_id}/items/reorder`, { ids: reordered.map((it) => it.id) })
+      .catch(() => setGroceryItems(groceryItems))
+  }
+
   if (!roadtrip) return <div style={{ padding: 32, color: '#9CA3AF' }}>Loading…</div>
 
   const isOwner   = roadtrip.owner_id === user?.id
@@ -263,113 +369,172 @@ export default function RoadtripDetail() {
 
       <main style={s.main} className="page-main">
 
-        {roadtrip.grocery_list_id && (
-          <section style={s.section}>
-            <h2 style={s.sectionTitle}>
-              <span className="material-icons-outlined" style={s.sectionIcon}>shopping_cart</span>
-              Grocery List
-            </h2>
-            <Link
-              to={`/lists/${roadtrip.grocery_list_id}`}
-              state={{ fromRoadtrip: roadtripId }}
-              style={s.groceryBtn}
+        {/* Tab bar */}
+        <div style={s.tabBar}>
+          <button
+            style={activeTab === 'todos' ? s.tabActive : s.tab}
+            onClick={() => setActiveTab('todos')}
+          >
+            <span className="material-icons-outlined" style={{ fontSize: 16 }}>checklist</span>
+            Todo List
+            {roadtrip.todos.length > 0 && (
+              <span style={activeTab === 'todos' ? s.tabCountActive : s.tabCount}>
+                {doneTodos}/{roadtrip.todos.length}
+              </span>
+            )}
+          </button>
+          {roadtrip.grocery_list_id && (
+            <button
+              style={activeTab === 'grocery' ? s.tabActive : s.tab}
+              onClick={() => setActiveTab('grocery')}
             >
-              Open Grocery List
-              <span className="material-icons-outlined" style={{ fontSize: 16 }}>arrow_forward</span>
-            </Link>
+              <span className="material-icons-outlined" style={{ fontSize: 16 }}>shopping_cart</span>
+              Grocery List
+            </button>
+          )}
+          <button
+            style={activeTab === 'travellers' ? s.tabActive : s.tab}
+            onClick={() => setActiveTab('travellers')}
+          >
+            <span className="material-icons-outlined" style={{ fontSize: 16 }}>group</span>
+            Travellers
+            <span style={s.tabCount}>{roadtrip.members.length + 1}</span>
+          </button>
+        </div>
+
+        {/* Travellers tab */}
+        {activeTab === 'travellers' && (
+          <section style={s.section}>
+            <div style={s.memberList}>
+              <div style={s.memberChip}>
+                <span className="material-icons-outlined" style={{ fontSize: 14, color: '#16A34A' }}>person</span>
+                <span style={s.memberName}>{roadtrip.owner_name}</span>
+                <span style={s.ownerBadge}>owner</span>
+              </div>
+              {roadtrip.members.map((m) => (
+                <div key={m.id} style={s.memberChip}>
+                  <span className="material-icons-outlined" style={{ fontSize: 14, color: '#9CA3AF' }}>person</span>
+                  <span style={s.memberName}>{m.name}</span>
+                  <span style={s.memberEmail}>{m.email}</span>
+                  {isOwner && (
+                    <button style={s.removeMemberBtn} onClick={() => removeMember(m.id)} title="Remove">
+                      <span className="material-icons-outlined" style={{ fontSize: 13 }}>close</span>
+                    </button>
+                  )}
+                </div>
+              ))}
+            </div>
+
+            {isOwner && (
+              <>
+                <form onSubmit={addMember} style={s.addMemberRow} className="add-form">
+                  <input
+                    style={s.memberInput}
+                    type="email"
+                    placeholder="Add traveller by email…"
+                    value={memberEmail}
+                    onChange={(e) => setMemberEmail(e.target.value)}
+                  />
+                  <button style={s.addMemberBtn} type="submit" disabled={addingMember}>
+                    <span className="material-icons-outlined" style={{ fontSize: 16 }}>person_add</span>
+                    {addingMember ? 'Adding…' : 'Add'}
+                  </button>
+                </form>
+                {memberError && <div style={s.errorBox}>{memberError}</div>}
+              </>
+            )}
           </section>
         )}
 
-        <section style={s.section}>
-          <h2 style={s.sectionTitle}>
-            <span className="material-icons-outlined" style={s.sectionIcon}>group</span>
-            Travellers
-          </h2>
+        {/* Todo list tab */}
+        {activeTab === 'todos' && (
+          <section style={s.section}>
+            <form onSubmit={addTodo} style={s.addTodoRow} className="add-form">
+              <input
+                style={s.todoInput}
+                placeholder="Add a task…"
+                value={todoText}
+                onChange={(e) => setTodoText(e.target.value)}
+              />
+              <button style={s.addTodoBtn} type="submit" disabled={addingTodo}>
+                <span className="material-icons-outlined" style={{ fontSize: 16 }}>add</span>
+                {addingTodo ? '…' : 'Add'}
+              </button>
+            </form>
 
-          <div style={s.memberList}>
-            <div style={s.memberChip}>
-              <span className="material-icons-outlined" style={{ fontSize: 14, color: '#16A34A' }}>person</span>
-              <span style={s.memberName}>{roadtrip.owner_name}</span>
-              <span style={s.ownerBadge}>owner</span>
-            </div>
-            {roadtrip.members.map((m) => (
-              <div key={m.id} style={s.memberChip}>
-                <span className="material-icons-outlined" style={{ fontSize: 14, color: '#9CA3AF' }}>person</span>
-                <span style={s.memberName}>{m.name}</span>
-                <span style={s.memberEmail}>{m.email}</span>
-                {isOwner && (
-                  <button style={s.removeMemberBtn} onClick={() => removeMember(m.id)} title="Remove">
-                    <span className="material-icons-outlined" style={{ fontSize: 13 }}>close</span>
-                  </button>
-                )}
+            {roadtrip.todos.length === 0 ? (
+              <div style={s.emptyState}>
+                <span className="material-icons-outlined" style={s.emptyIcon}>checklist</span>
+                <p style={s.emptyText}>No tasks yet. Add your first one above.</p>
               </div>
-            ))}
-          </div>
-
-          {isOwner && (
-            <>
-              <form onSubmit={addMember} style={s.addMemberRow} className="add-form">
-                <input
-                  style={s.memberInput}
-                  type="email"
-                  placeholder="Add traveller by email…"
-                  value={memberEmail}
-                  onChange={(e) => setMemberEmail(e.target.value)}
-                />
-                <button style={s.addMemberBtn} type="submit" disabled={addingMember}>
-                  <span className="material-icons-outlined" style={{ fontSize: 16 }}>person_add</span>
-                  {addingMember ? 'Adding…' : 'Add'}
-                </button>
-              </form>
-              {memberError && <div style={s.errorBox}>{memberError}</div>}
-            </>
-          )}
-        </section>
-
-        <section style={s.section}>
-          <h2 style={s.sectionTitle}>
-            <span className="material-icons-outlined" style={s.sectionIcon}>checklist</span>
-            Todo List
-            {roadtrip.todos.length > 0 && (
-              <span style={s.progressBadge}>{doneTodos}/{roadtrip.todos.length}</span>
+            ) : (
+              <DndContext sensors={sensors} collisionDetection={closestCenter} onDragEnd={handleDragEnd}>
+                <SortableContext items={roadtrip.todos.map((t) => t.id)} strategy={verticalListSortingStrategy}>
+                  <div style={s.todoList}>
+                    {roadtrip.todos.map((todo) => (
+                      <SortableTodoItem
+                        key={todo.id}
+                        todo={todo}
+                        onToggle={() => toggleTodo(todo)}
+                        onDelete={() => deleteTodo(todo.id)}
+                      />
+                    ))}
+                  </div>
+                </SortableContext>
+              </DndContext>
             )}
-          </h2>
+          </section>
+        )}
 
-          <form onSubmit={addTodo} style={s.addTodoRow} className="add-form">
-            <input
-              style={s.todoInput}
-              placeholder="Add a task…"
-              value={todoText}
-              onChange={(e) => setTodoText(e.target.value)}
-            />
-            <button style={s.addTodoBtn} type="submit" disabled={addingTodo}>
-              <span className="material-icons-outlined" style={{ fontSize: 16 }}>add</span>
-              {addingTodo ? '…' : 'Add'}
-            </button>
-          </form>
+        {/* Grocery list tab */}
+        {activeTab === 'grocery' && roadtrip.grocery_list_id && (
+          <section style={s.section}>
+            <form onSubmit={addGroceryItem} style={s.addTodoRow} className="add-form">
+              <input
+                style={{ ...s.todoInput, flex: 2 }}
+                placeholder="Item…"
+                value={groceryNewName}
+                onChange={(e) => setGroceryNewName(e.target.value)}
+              />
+              <input
+                style={{ ...s.todoInput, flex: '0 0 70px' as any }}
+                type="number"
+                min={1}
+                placeholder="Qty"
+                value={groceryNewQty}
+                onChange={(e) => setGroceryNewQty(e.target.value)}
+              />
+              <button style={s.addTodoBtn} type="submit" disabled={groceryAdding}>
+                <span className="material-icons-outlined" style={{ fontSize: 16 }}>add</span>
+                {groceryAdding ? '…' : 'Add'}
+              </button>
+            </form>
 
-          {roadtrip.todos.length === 0 ? (
-            <div style={s.emptyState}>
-              <span className="material-icons-outlined" style={s.emptyIcon}>checklist</span>
-              <p style={s.emptyText}>No tasks yet. Add your first one above.</p>
-            </div>
-          ) : (
-            <DndContext sensors={sensors} collisionDetection={closestCenter} onDragEnd={handleDragEnd}>
-              <SortableContext items={roadtrip.todos.map((t) => t.id)} strategy={verticalListSortingStrategy}>
-                <div style={s.todoList}>
-                  {roadtrip.todos.map((todo) => (
-                    <SortableTodoItem
-                      key={todo.id}
-                      todo={todo}
-                      onToggle={() => toggleTodo(todo)}
-                      onDelete={() => deleteTodo(todo.id)}
-                    />
-                  ))}
-                </div>
-              </SortableContext>
-            </DndContext>
-          )}
-        </section>
+            {!groceryLoaded ? (
+              <p style={{ color: '#9CA3AF', fontSize: 14 }}>Loading…</p>
+            ) : groceryItems.length === 0 ? (
+              <div style={s.emptyState}>
+                <span className="material-icons-outlined" style={s.emptyIcon}>shopping_cart</span>
+                <p style={s.emptyText}>No items yet. Add your first one above.</p>
+              </div>
+            ) : (
+              <DndContext sensors={sensors} collisionDetection={closestCenter} onDragEnd={handleGroceryDragEnd}>
+                <SortableContext items={groceryItems.map((it) => it.id)} strategy={verticalListSortingStrategy}>
+                  <div style={s.todoList}>
+                    {groceryItems.map((item) => (
+                      <SortableGroceryItem
+                        key={item.id}
+                        item={item}
+                        onToggle={() => toggleGroceryItem(item)}
+                        onDelete={() => deleteGroceryItem(item.id)}
+                      />
+                    ))}
+                  </div>
+                </SortableContext>
+              </DndContext>
+            )}
+          </section>
+        )}
 
       </main>
     </div>
@@ -428,13 +593,34 @@ const s: Record<string, React.CSSProperties> = {
     display: 'flex', alignItems: 'center', gap: 4, minWidth: 70,
   },
   main: { maxWidth: 800, margin: '0 auto', padding: '32px 24px' },
-  section: { marginBottom: 40 },
-  sectionTitle: {
-    fontSize: 14, fontWeight: 600, color: '#374151', marginBottom: 14,
-    display: 'flex', alignItems: 'center', gap: 6,
-    textTransform: 'uppercase' as const, letterSpacing: '0.5px',
+  tabBar: {
+    display: 'flex', gap: 2, marginBottom: 24,
+    borderBottom: '1px solid #E5E7EB', paddingBottom: 0,
   },
-  sectionIcon: { fontSize: 18, color: '#9CA3AF' },
+  tab: {
+    display: 'flex', alignItems: 'center', gap: 6,
+    padding: '10px 16px', background: 'transparent', border: 'none',
+    borderBottom: '2px solid transparent', marginBottom: -1,
+    cursor: 'pointer', fontSize: 13, fontWeight: 500, color: '#6B7280',
+    borderRadius: '6px 6px 0 0',
+  },
+  tabActive: {
+    display: 'flex', alignItems: 'center', gap: 6,
+    padding: '10px 16px', background: 'transparent', border: 'none',
+    borderBottom: '2px solid #16A34A', marginBottom: -1,
+    cursor: 'pointer', fontSize: 13, fontWeight: 600, color: '#16A34A',
+    borderRadius: '6px 6px 0 0',
+  },
+  tabCount: {
+    background: '#F3F4F6', color: '#6B7280',
+    borderRadius: 10, padding: '1px 7px', fontSize: 11, fontWeight: 600,
+  },
+  tabCountActive: {
+    background: '#F0FDF4', color: '#16A34A',
+    border: '1px solid #BBF7D0',
+    borderRadius: 10, padding: '1px 7px', fontSize: 11, fontWeight: 600,
+  },
+  section: { marginBottom: 40 },
   progressBadge: {
     fontSize: 11, fontWeight: 600,
     background: '#F0FDF4', color: '#16A34A', border: '1px solid #BBF7D0',
@@ -489,6 +675,10 @@ const s: Record<string, React.CSSProperties> = {
   emptyIcon: { fontSize: 32, color: '#D1D5DB', display: 'block', marginBottom: 8 },
   emptyText: { color: '#9CA3AF', fontSize: 14 },
   todoList: { display: 'flex', flexDirection: 'column' as const, gap: 4 },
+  groceryItem: {
+    display: 'flex', alignItems: 'center', gap: 10,
+    border: '1px solid #E5E7EB', borderRadius: 8, padding: '10px 12px',
+  },
   todoItem: {
     display: 'flex', alignItems: 'center', gap: 10,
     border: '1px solid #E5E7EB', borderRadius: 8, padding: '10px 12px',

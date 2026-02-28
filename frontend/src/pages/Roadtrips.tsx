@@ -73,8 +73,8 @@ export default function Roadtrips() {
           Rallebola
         </Link>
         <nav style={s.nav} className="app-nav">
-          <Link to="/my-lists" style={s.navLink}>My Lists</Link>
           <Link to="/roadtrips" style={s.navLinkActive}>Road Trips</Link>
+          <Link to="/my-lists" style={s.navLink}>My Equipment</Link>
         </nav>
         <div style={s.headerRight}>
           <span style={s.navUser} className="nav-user">

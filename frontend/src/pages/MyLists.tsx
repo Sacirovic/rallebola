@@ -89,8 +89,8 @@ export default function MyLists() {
           Rallebola
         </Link>
         <nav style={s.nav} className="app-nav">
-          <Link to="/my-lists" style={s.navLinkActive}>My Lists</Link>
           <Link to="/roadtrips" style={s.navLink}>Road Trips</Link>
+          <Link to="/my-lists" style={s.navLinkActive}>My Equipment</Link>
         </nav>
         <div style={s.headerRight}>
           <span style={s.navUser} className="nav-user">
@@ -107,7 +107,7 @@ export default function MyLists() {
         <section style={s.section}>
           <h2 style={s.sectionTitle}>
             <span className="material-icons-outlined" style={s.sectionIcon}>list_alt</span>
-            My Lists
+            My Equipment
           </h2>
 
           <form onSubmit={createList} style={s.createRow} className="create-row">
