@@ -31,8 +31,6 @@ interface Roadtrip {
   todos: Todo[]
 }
 
-// ── Sortable todo row ──────────────────────────────────────────────────────
-
 function SortableTodoItem({ todo, onToggle, onDelete }: {
   todo: Todo
   onToggle: () => void
@@ -45,30 +43,30 @@ function SortableTodoItem({ todo, onToggle, onDelete }: {
       ref={setNodeRef}
       style={{
         ...s.todoItem,
-        background: todo.done ? '#F2EAD8' : '#FDFCF8',
+        background: todo.done ? '#F9FAFB' : '#FFFFFF',
         transform: CSS.Transform.toString(transform),
         transition,
-        opacity: isDragging ? 0.4 : 1,
+        opacity: isDragging ? 0.5 : 1,
         zIndex: isDragging ? 1 : undefined,
-        boxShadow: isDragging ? '0 4px 12px rgba(0,0,0,0.12)' : undefined,
+        boxShadow: isDragging ? '0 4px 12px rgba(0,0,0,0.1)' : undefined,
       }}
       {...attributes}
     >
-      <div style={s.dragHandle} {...listeners} title="Drag to reorder">
-        ⠿
-      </div>
+      <span className="material-icons-outlined" style={s.dragHandle} {...listeners} title="Drag to reorder">
+        drag_indicator
+      </span>
       <button
         style={{ ...s.checkbox, ...(todo.done ? s.checkboxDone : {}) }}
         onClick={onToggle}
         title={todo.done ? 'Mark undone' : 'Mark done'}
       >
-        {todo.done ? '✓' : ''}
+        {todo.done && <span className="material-icons-outlined" style={{ fontSize: 13 }}>check</span>}
       </button>
       <div style={s.todoContent}>
         <span style={{
           ...s.todoText,
           textDecoration: todo.done ? 'line-through' : 'none',
-          color: todo.done ? '#A08060' : '#3C2A18',
+          color: todo.done ? '#9CA3AF' : '#111827',
         }}>
           {todo.text}
         </span>
@@ -76,12 +74,12 @@ function SortableTodoItem({ todo, onToggle, onDelete }: {
           <span style={s.todoCreator}>by {todo.created_by_name}</span>
         )}
       </div>
-      <button style={s.deleteTodoBtn} onClick={onDelete} title="Delete">✕</button>
+      <button style={s.deleteTodoBtn} onClick={onDelete} title="Delete">
+        <span className="material-icons-outlined" style={{ fontSize: 15 }}>close</span>
+      </button>
     </div>
   )
 }
-
-// ── Page ───────────────────────────────────────────────────────────────────
 
 export default function RoadtripDetail() {
   const { id } = useParams<{ id: string }>()
@@ -163,13 +161,10 @@ export default function RoadtripDetail() {
   const handleDragEnd = (event: DragEndEvent) => {
     const { active, over } = event
     if (!over || active.id === over.id || !roadtrip) return
-
     const oldIndex = roadtrip.todos.findIndex((t) => t.id === active.id)
     const newIndex = roadtrip.todos.findIndex((t) => t.id === over.id)
     const reordered = arrayMove(roadtrip.todos, oldIndex, newIndex)
-
     setRoadtrip((prev) => prev ? { ...prev, todos: reordered } : prev)
-
     client.put(`/roadtrips/${roadtripId}/todos/reorder`, {
       ids: reordered.map((t) => t.id),
     }).catch(() => {
@@ -201,7 +196,7 @@ export default function RoadtripDetail() {
     )
   }
 
-  if (!roadtrip) return <div style={{ padding: 32, color: '#A08060' }}>Loading…</div>
+  if (!roadtrip) return <div style={{ padding: 32, color: '#9CA3AF' }}>Loading…</div>
 
   const isOwner   = roadtrip.owner_id === user?.id
   const doneTodos = roadtrip.todos.filter((t) => t.done).length
@@ -217,10 +212,12 @@ export default function RoadtripDetail() {
   return (
     <div style={s.page}>
       <header style={s.header} className="app-header">
-        <Link to="/roadtrips" style={s.back}>← Back</Link>
+        <Link to="/roadtrips" style={s.back}>
+          <span className="material-icons-outlined" style={{ fontSize: 16 }}>arrow_back</span>
+          Road Trips
+        </Link>
 
         <div style={s.headerCenter}>
-          <span style={{ fontSize: 18 }}>🚗</span>
           {editing ? (
             <div style={s.editRow}>
               <input
@@ -235,56 +232,75 @@ export default function RoadtripDetail() {
                 value={editDate}
                 onChange={(e) => setEditDate(e.target.value)}
               />
-              <button style={s.editSaveBtn} onClick={saveEdit}>✓</button>
-              <button style={s.editCancelBtn} onClick={() => setEditing(false)}>✕</button>
+              <button style={s.editSaveBtn} onClick={saveEdit}>
+                <span className="material-icons-outlined" style={{ fontSize: 16 }}>check</span>
+              </button>
+              <button style={s.editCancelBtn} onClick={() => setEditing(false)}>
+                <span className="material-icons-outlined" style={{ fontSize: 16 }}>close</span>
+              </button>
             </div>
           ) : (
             <div style={s.titleGroup}>
               <h1 style={s.headerTitle}>{roadtrip.name}</h1>
               {roadtrip.date && (
-                <span style={s.dateBadge}>📅 {formatDate(roadtrip.date)}</span>
+                <span style={s.dateBadge}>
+                  <span className="material-icons-outlined" style={{ fontSize: 12 }}>calendar_today</span>
+                  {formatDate(roadtrip.date)}
+                </span>
               )}
             </div>
           )}
         </div>
 
         {isOwner && !editing
-          ? <button style={s.editBtn} onClick={startEdit}>✏ Edit</button>
-          : <div style={{ minWidth: 60 }} />
+          ? <button style={s.editBtn} onClick={startEdit}>
+              <span className="material-icons-outlined" style={{ fontSize: 15 }}>edit</span>
+              Edit
+            </button>
+          : <div style={{ minWidth: 70 }} />
         }
       </header>
 
       <main style={s.main} className="page-main">
 
-        {/* Grocery List */}
         {roadtrip.grocery_list_id && (
           <section style={s.section}>
-            <h2 style={s.sectionTitle}>🛒 Grocery List</h2>
+            <h2 style={s.sectionTitle}>
+              <span className="material-icons-outlined" style={s.sectionIcon}>shopping_cart</span>
+              Grocery List
+            </h2>
             <Link
               to={`/lists/${roadtrip.grocery_list_id}`}
               state={{ fromRoadtrip: roadtripId }}
               style={s.groceryBtn}
             >
-              Open Grocery List →
+              Open Grocery List
+              <span className="material-icons-outlined" style={{ fontSize: 16 }}>arrow_forward</span>
             </Link>
           </section>
         )}
 
-        {/* Travellers */}
         <section style={s.section}>
-          <h2 style={s.sectionTitle}>👥 Travellers</h2>
+          <h2 style={s.sectionTitle}>
+            <span className="material-icons-outlined" style={s.sectionIcon}>group</span>
+            Travellers
+          </h2>
 
           <div style={s.memberList}>
             <div style={s.memberChip}>
+              <span className="material-icons-outlined" style={{ fontSize: 14, color: '#16A34A' }}>person</span>
               <span style={s.memberName}>{roadtrip.owner_name}</span>
               <span style={s.ownerBadge}>owner</span>
             </div>
             {roadtrip.members.map((m) => (
               <div key={m.id} style={s.memberChip}>
+                <span className="material-icons-outlined" style={{ fontSize: 14, color: '#9CA3AF' }}>person</span>
                 <span style={s.memberName}>{m.name}</span>
                 <span style={s.memberEmail}>{m.email}</span>
                 {isOwner && (
-                  <button style={s.removeMemberBtn} onClick={() => removeMember(m.id)} title="Remove">✕</button>
+                  <button style={s.removeMemberBtn} onClick={() => removeMember(m.id)} title="Remove">
+                    <span className="material-icons-outlined" style={{ fontSize: 13 }}>close</span>
+                  </button>
                 )}
               </div>
             ))}
@@ -301,7 +317,8 @@ export default function RoadtripDetail() {
                   onChange={(e) => setMemberEmail(e.target.value)}
                 />
                 <button style={s.addMemberBtn} type="submit" disabled={addingMember}>
-                  {addingMember ? 'Adding…' : '+ Add'}
+                  <span className="material-icons-outlined" style={{ fontSize: 16 }}>person_add</span>
+                  {addingMember ? 'Adding…' : 'Add'}
                 </button>
               </form>
               {memberError && <div style={s.errorBox}>{memberError}</div>}
@@ -309,10 +326,10 @@ export default function RoadtripDetail() {
           )}
         </section>
 
-        {/* Todo list */}
         <section style={s.section}>
           <h2 style={s.sectionTitle}>
-            ✅ Todo List
+            <span className="material-icons-outlined" style={s.sectionIcon}>checklist</span>
+            Todo List
             {roadtrip.todos.length > 0 && (
               <span style={s.progressBadge}>{doneTodos}/{roadtrip.todos.length}</span>
             )}
@@ -326,12 +343,14 @@ export default function RoadtripDetail() {
               onChange={(e) => setTodoText(e.target.value)}
             />
             <button style={s.addTodoBtn} type="submit" disabled={addingTodo}>
-              {addingTodo ? '…' : '+ Add'}
+              <span className="material-icons-outlined" style={{ fontSize: 16 }}>add</span>
+              {addingTodo ? '…' : 'Add'}
             </button>
           </form>
 
           {roadtrip.todos.length === 0 ? (
             <div style={s.emptyState}>
+              <span className="material-icons-outlined" style={s.emptyIcon}>checklist</span>
               <p style={s.emptyText}>No tasks yet. Add your first one above.</p>
             </div>
           ) : (
@@ -358,18 +377,19 @@ export default function RoadtripDetail() {
 }
 
 const s: Record<string, React.CSSProperties> = {
-  page: { minHeight: '100vh', background: '#F7F2E8' },
+  page: { minHeight: '100vh', background: '#F8FAFC' },
   header: {
-    background: '#5C7A48',
-    padding: '0 24px',
-    height: 58,
-    display: 'flex',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    borderBottom: '2px solid #D4A84A',
+    background: '#FFFFFF', padding: '0 24px', height: 56,
+    display: 'flex', alignItems: 'center', justifyContent: 'space-between',
+    borderBottom: '1px solid #E5E7EB',
+    position: 'sticky' as const, top: 0, zIndex: 10,
+    boxShadow: '0 1px 2px rgba(0,0,0,0.04)',
     gap: 12,
   },
-  back: { color: '#C8E0A8', textDecoration: 'none', fontSize: 14, fontWeight: 500, minWidth: 60 },
+  back: {
+    color: '#6B7280', textDecoration: 'none', fontSize: 13, fontWeight: 500,
+    display: 'flex', alignItems: 'center', gap: 4, minWidth: 80,
+  },
   headerCenter: {
     display: 'flex', alignItems: 'center', gap: 8,
     flex: 1, justifyContent: 'center', overflow: 'hidden',
@@ -379,135 +399,120 @@ const s: Record<string, React.CSSProperties> = {
     alignItems: 'center', gap: 2, overflow: 'hidden',
   },
   headerTitle: {
-    fontFamily: "'Lora', Georgia, serif",
-    fontSize: 18, fontWeight: 700, color: '#F5E4B0', margin: 0,
+    fontSize: 15, fontWeight: 600, color: '#111827', margin: 0,
     overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' as const,
   },
-  dateBadge: { fontSize: 11, color: '#C8E0A8', whiteSpace: 'nowrap' as const },
+  dateBadge: { fontSize: 11, color: '#9CA3AF', display: 'flex', alignItems: 'center', gap: 3, whiteSpace: 'nowrap' as const },
   editRow: { display: 'flex', alignItems: 'center', gap: 6, flex: 1 },
   editNameInput: {
     flex: 1, padding: '5px 10px', borderRadius: 6,
-    border: '1.5px solid #94C278', background: '#4D6E3A',
-    color: '#F5E4B0', fontSize: 15, outline: 'none',
-    fontFamily: "'Lora', Georgia, serif", fontWeight: 700,
+    border: '1px solid #D1D5DB', background: '#FFFFFF',
+    color: '#111827', fontSize: 14, outline: 'none', fontWeight: 600,
   },
   editDateInput: {
     padding: '5px 8px', borderRadius: 6,
-    border: '1.5px solid #94C278', background: '#4D6E3A',
-    color: '#F5E4B0', fontSize: 13, outline: 'none',
+    border: '1px solid #D1D5DB', background: '#FFFFFF',
+    color: '#111827', fontSize: 13, outline: 'none',
   },
   editSaveBtn: {
-    background: '#89B86E', color: '#FDFCF8',
-    border: 'none', borderRadius: 6, padding: '5px 10px',
-    cursor: 'pointer', fontWeight: 700,
+    background: '#16A34A', color: '#FFFFFF', border: 'none', borderRadius: 6,
+    padding: '5px 10px', cursor: 'pointer', display: 'flex', alignItems: 'center',
   },
   editCancelBtn: {
-    background: '#4D6E3A', color: '#C8E0A8',
-    border: '1px solid #6B9652', borderRadius: 6, padding: '5px 10px',
-    cursor: 'pointer',
+    background: '#F9FAFB', color: '#6B7280', border: '1px solid #E5E7EB',
+    borderRadius: 6, padding: '5px 10px', cursor: 'pointer', display: 'flex', alignItems: 'center',
   },
   editBtn: {
-    background: 'transparent', border: '1px solid #94C278',
-    color: '#C8E0A8', borderRadius: 6, padding: '5px 12px',
-    cursor: 'pointer', fontSize: 12, fontWeight: 500, minWidth: 60,
+    background: '#FFFFFF', border: '1px solid #E5E7EB', color: '#374151',
+    borderRadius: 6, padding: '5px 12px', cursor: 'pointer', fontSize: 13, fontWeight: 500,
+    display: 'flex', alignItems: 'center', gap: 4, minWidth: 70,
   },
-  main: { maxWidth: 800, margin: '0 auto', padding: '32px 20px' },
-  section: { marginBottom: 44 },
+  main: { maxWidth: 800, margin: '0 auto', padding: '32px 24px' },
+  section: { marginBottom: 40 },
   sectionTitle: {
-    fontFamily: "'Lora', Georgia, serif",
-    fontSize: 18, fontWeight: 700, color: '#3C2A18',
-    marginBottom: 14, display: 'flex', alignItems: 'center', gap: 10,
-  },
-  progressBadge: {
-    fontSize: 12, fontWeight: 600,
-    background: '#E0EED0', color: '#4D6E3A',
-    borderRadius: 20, padding: '2px 10px',
-  },
-  memberList: { display: 'flex', flexWrap: 'wrap' as const, gap: 8, marginBottom: 14 },
-  memberChip: {
+    fontSize: 14, fontWeight: 600, color: '#374151', marginBottom: 14,
     display: 'flex', alignItems: 'center', gap: 6,
-    background: '#FDFCF8', border: '1.5px solid #DDD0B0',
-    borderRadius: 20, padding: '6px 12px',
+    textTransform: 'uppercase' as const, letterSpacing: '0.5px',
   },
-  memberName: { fontSize: 13, fontWeight: 600, color: '#3C2A18' },
-  memberEmail: { fontSize: 11, color: '#A08060' },
+  sectionIcon: { fontSize: 18, color: '#9CA3AF' },
+  progressBadge: {
+    fontSize: 11, fontWeight: 600,
+    background: '#F0FDF4', color: '#16A34A', border: '1px solid #BBF7D0',
+    borderRadius: 20, padding: '2px 8px', marginLeft: 4,
+  },
+  memberList: { display: 'flex', flexWrap: 'wrap' as const, gap: 6, marginBottom: 12 },
+  memberChip: {
+    display: 'flex', alignItems: 'center', gap: 5,
+    background: '#FFFFFF', border: '1px solid #E5E7EB',
+    borderRadius: 20, padding: '5px 12px',
+  },
+  memberName: { fontSize: 13, fontWeight: 500, color: '#111827' },
+  memberEmail: { fontSize: 11, color: '#9CA3AF' },
   ownerBadge: {
     fontSize: 10, fontWeight: 700, letterSpacing: '0.5px',
     textTransform: 'uppercase' as const,
-    background: '#E0EED0', color: '#4D6E3A',
+    background: '#F0FDF4', color: '#16A34A', border: '1px solid #BBF7D0',
     borderRadius: 10, padding: '1px 7px',
   },
   removeMemberBtn: {
-    background: 'none', border: 'none', color: '#C4A882',
-    cursor: 'pointer', fontSize: 11, padding: '0 2px',
+    background: 'none', border: 'none', color: '#D1D5DB',
+    cursor: 'pointer', padding: '0 2px', display: 'flex', alignItems: 'center',
   },
   addMemberRow: { display: 'flex', gap: 8 },
   memberInput: {
-    flex: 1, padding: '9px 14px',
-    borderRadius: 8, border: '1.5px solid #DDD0B0',
-    background: '#FDFCF8', fontSize: 14, color: '#3C2A18', outline: 'none',
+    flex: 1, padding: '9px 12px', borderRadius: 8, border: '1px solid #E5E7EB',
+    background: '#FFFFFF', fontSize: 14, color: '#111827', outline: 'none',
   },
   addMemberBtn: {
-    padding: '9px 18px', background: '#6B9652',
-    color: '#F7F2E8', border: 'none', borderRadius: 8,
-    fontWeight: 600, fontSize: 13, cursor: 'pointer', whiteSpace: 'nowrap' as const,
+    padding: '9px 14px', background: '#16A34A', color: '#FFFFFF',
+    border: 'none', borderRadius: 8, fontWeight: 600, fontSize: 13, cursor: 'pointer',
+    whiteSpace: 'nowrap' as const, display: 'flex', alignItems: 'center', gap: 4,
   },
   errorBox: {
-    background: '#FBEEE8', color: '#C46A5A',
-    border: '1px solid #F0C4BC', borderRadius: 8,
-    padding: '10px 14px', fontSize: 13, marginTop: 10,
+    background: '#FEF2F2', color: '#DC2626', border: '1px solid #FECACA',
+    borderRadius: 8, padding: '10px 14px', fontSize: 13, marginTop: 10,
   },
-  addTodoRow: { display: 'flex', gap: 8, marginBottom: 12 },
+  addTodoRow: { display: 'flex', gap: 8, marginBottom: 10 },
   todoInput: {
-    flex: 1, padding: '10px 14px',
-    borderRadius: 8, border: '1.5px solid #DDD0B0',
-    background: '#FDFCF8', fontSize: 14, color: '#3C2A18', outline: 'none',
+    flex: 1, padding: '9px 12px', borderRadius: 8, border: '1px solid #E5E7EB',
+    background: '#FFFFFF', fontSize: 14, color: '#111827', outline: 'none',
   },
   addTodoBtn: {
-    padding: '10px 18px', background: '#6B9652',
-    color: '#F7F2E8', border: 'none', borderRadius: 8,
-    fontWeight: 600, fontSize: 13, cursor: 'pointer', whiteSpace: 'nowrap' as const,
+    padding: '9px 14px', background: '#16A34A', color: '#FFFFFF',
+    border: 'none', borderRadius: 8, fontWeight: 600, fontSize: 13, cursor: 'pointer',
+    whiteSpace: 'nowrap' as const, display: 'flex', alignItems: 'center', gap: 4,
   },
   emptyState: {
-    background: '#FDFCF8', border: '1.5px dashed #DDD0B0',
-    borderRadius: 10, padding: '24px', textAlign: 'center' as const,
+    background: '#FFFFFF', border: '1px solid #E5E7EB',
+    borderRadius: 8, padding: '24px', textAlign: 'center' as const,
   },
-  emptyText: { color: '#A08060', fontSize: 14 },
-  todoList: { display: 'flex', flexDirection: 'column' as const, gap: 6 },
+  emptyIcon: { fontSize: 32, color: '#D1D5DB', display: 'block', marginBottom: 8 },
+  emptyText: { color: '#9CA3AF', fontSize: 14 },
+  todoList: { display: 'flex', flexDirection: 'column' as const, gap: 4 },
   todoItem: {
     display: 'flex', alignItems: 'center', gap: 10,
-    border: '1.5px solid #DDD0B0', borderRadius: 8, padding: '10px 12px',
+    border: '1px solid #E5E7EB', borderRadius: 8, padding: '10px 12px',
   },
   dragHandle: {
-    color: '#C4A882', fontSize: 16, cursor: 'grab',
-    padding: '0 2px', flexShrink: 0, userSelect: 'none' as const,
-    touchAction: 'none',
+    fontSize: 20, color: '#D1D5DB', cursor: 'grab',
+    flexShrink: 0, userSelect: 'none' as const, touchAction: 'none',
   },
   checkbox: {
-    width: 22, height: 22, borderRadius: 6,
-    border: '2px solid #B8D89C', background: '#F7F2E8',
-    cursor: 'pointer', fontSize: 12, fontWeight: 700,
-    color: '#4D6E3A', display: 'flex', alignItems: 'center', justifyContent: 'center',
-    flexShrink: 0,
+    width: 20, height: 20, borderRadius: 5, border: '1.5px solid #D1D5DB', background: '#FFFFFF',
+    cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center',
+    flexShrink: 0, color: '#FFFFFF',
   },
-  checkboxDone: {
-    background: '#89B86E', border: '2px solid #6B9652', color: '#FDFCF8',
-  },
+  checkboxDone: { background: '#16A34A', border: '1.5px solid #16A34A' },
   todoContent: { flex: 1, display: 'flex', flexDirection: 'column' as const, gap: 2, minWidth: 0 },
   todoText: { fontSize: 14, wordBreak: 'break-word' as const },
-  todoCreator: { fontSize: 11, color: '#A08060' },
+  todoCreator: { fontSize: 11, color: '#9CA3AF' },
   deleteTodoBtn: {
-    background: 'none', border: 'none', color: '#C4A882',
-    cursor: 'pointer', fontSize: 13, padding: '0 4px', flexShrink: 0,
+    background: 'none', border: 'none', color: '#D1D5DB',
+    cursor: 'pointer', padding: '0 4px', flexShrink: 0, display: 'flex', alignItems: 'center',
   },
   groceryBtn: {
-    display: 'inline-block',
-    padding: '10px 20px',
-    background: '#6B9652',
-    color: '#F7F2E8',
-    borderRadius: 8,
-    textDecoration: 'none',
-    fontWeight: 600,
-    fontSize: 14,
+    display: 'inline-flex', alignItems: 'center', gap: 6,
+    padding: '9px 16px', background: '#F0FDF4', color: '#16A34A',
+    border: '1px solid #BBF7D0', borderRadius: 8, textDecoration: 'none', fontWeight: 500, fontSize: 13,
   },
 }

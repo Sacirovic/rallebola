@@ -45,8 +45,6 @@ interface BorrowRequest {
   status: string
 }
 
-// ── Sortable grocery item ──────────────────────────────────────────────────
-
 function SortableGroceryItem({ item, canEdit, onToggle, onDelete }: {
   item: Item
   canEdit: boolean
@@ -60,41 +58,43 @@ function SortableGroceryItem({ item, canEdit, onToggle, onDelete }: {
       ref={setNodeRef}
       style={{
         ...s.groceryItem,
-        background: item.checked ? '#F2EAD8' : '#FDFCF8',
+        background: item.checked ? '#F9FAFB' : '#FFFFFF',
         transform: CSS.Transform.toString(transform),
         transition,
-        opacity: isDragging ? 0.4 : 1,
+        opacity: isDragging ? 0.5 : 1,
         zIndex: isDragging ? 1 : undefined,
-        boxShadow: isDragging ? '0 4px 12px rgba(0,0,0,0.12)' : undefined,
+        boxShadow: isDragging ? '0 4px 12px rgba(0,0,0,0.1)' : undefined,
       }}
       {...attributes}
     >
       {canEdit && (
-        <div style={s.dragHandle} {...listeners} title="Drag to reorder">⠿</div>
+        <span className="material-icons-outlined" style={s.dragHandle} {...listeners} title="Drag to reorder">
+          drag_indicator
+        </span>
       )}
       <button
         style={{ ...s.checkbox, ...(item.checked ? s.checkboxDone : {}) }}
         onClick={onToggle}
         title={item.checked ? 'Mark not bought' : 'Mark bought'}
       >
-        {item.checked ? '✓' : ''}
+        {item.checked && <span className="material-icons-outlined" style={{ fontSize: 13 }}>check</span>}
       </button>
       <span style={{
         ...s.groceryName,
         textDecoration: item.checked ? 'line-through' : 'none',
-        color: item.checked ? '#A08060' : '#3C2A18',
+        color: item.checked ? '#9CA3AF' : '#111827',
       }}>
         {item.name}
         {item.quantity > 1 && <span style={s.qtyBadge}>×{item.quantity}</span>}
       </span>
       {canEdit && (
-        <button style={s.deleteGroceryBtn} onClick={onDelete} title="Delete">✕</button>
+        <button style={s.deleteGroceryBtn} onClick={onDelete} title="Delete">
+          <span className="material-icons-outlined" style={{ fontSize: 14 }}>close</span>
+        </button>
       )}
     </div>
   )
 }
-
-// ── Page ───────────────────────────────────────────────────────────────────
 
 export default function ListDetail() {
   const { id } = useParams<{ id: string }>()
@@ -197,30 +197,45 @@ export default function ListDetail() {
       .catch(() => setItems(items))
   }
 
-  if (!list) return <div style={{ padding: 32, color: '#A08060' }}>Loading…</div>
+  if (!list) return <div style={{ padding: 32, color: '#9CA3AF' }}>Loading…</div>
 
   return (
     <div style={s.page}>
       <header style={s.header} className="app-header">
         {fromRoadtrip
-          ? <Link to={`/roadtrips/${fromRoadtrip}`} style={s.back}>← Roadtrip</Link>
-          : <Link to="/" style={s.back}>← Back</Link>
+          ? <Link to={`/roadtrips/${fromRoadtrip}`} style={s.back}>
+              <span className="material-icons-outlined" style={{ fontSize: 16 }}>arrow_back</span>
+              Road Trip
+            </Link>
+          : <Link to="/" style={s.back}>
+              <span className="material-icons-outlined" style={{ fontSize: 16 }}>arrow_back</span>
+              Back
+            </Link>
         }
         <div style={s.headerCenter}>
-          <span style={{ fontSize: 20 }}>{isGroceryList ? '🛒' : '🌾'}</span>
+          <span className="material-icons-outlined" style={s.headerIcon}>
+            {isGroceryList ? 'shopping_cart' : 'list_alt'}
+          </span>
           <h1 style={s.headerTitle}>{list.name}</h1>
         </div>
         {isOwner && !list.roadtrip_id
-          ? <button style={s.shareBtn} onClick={() => setShowShare(true)}>🤝 Share</button>
-          : <div style={{ width: 90 }} />
+          ? <button style={s.shareBtn} onClick={() => setShowShare(true)}>
+              <span className="material-icons-outlined" style={{ fontSize: 15 }}>group_add</span>
+              Share
+            </button>
+          : <div style={{ width: 80 }} />
         }
       </header>
 
       <main style={s.main} className="page-main">
-        {error && <div style={s.errorBox}>{error}</div>}
+        {error && (
+          <div style={s.errorBox}>
+            <span className="material-icons-outlined" style={{ fontSize: 15, marginRight: 6 }}>error_outline</span>
+            {error}
+          </div>
+        )}
 
         {isGroceryList ? (
-          // ── Grocery / todo-style view ──────────────────────────────────
           <>
             {canEdit && (
               <form onSubmit={addItem} style={s.addTodoRow} className="add-form">
@@ -239,14 +254,15 @@ export default function ListDetail() {
                   onChange={(e) => setNewQty(e.target.value)}
                 />
                 <button style={s.addTodoBtn} type="submit" disabled={adding}>
-                  {adding ? '…' : '+ Add'}
+                  <span className="material-icons-outlined" style={{ fontSize: 16 }}>add</span>
+                  {adding ? '…' : 'Add'}
                 </button>
               </form>
             )}
 
             {items.length === 0 ? (
               <div style={s.emptyState}>
-                <span style={{ fontSize: 36 }}>🛒</span>
+                <span className="material-icons-outlined" style={s.emptyIcon}>shopping_cart</span>
                 <p style={s.emptyText}>No items yet. Add your first one above.</p>
               </div>
             ) : (
@@ -268,7 +284,6 @@ export default function ListDetail() {
             )}
           </>
         ) : (
-          // ── Standard table view ───────────────────────────────────────
           <>
             {canEdit && (
               <form onSubmit={addItem} style={s.addForm} className="add-form">
@@ -293,14 +308,15 @@ export default function ListDetail() {
                   onChange={(e) => setNewNotes(e.target.value)}
                 />
                 <button style={s.addBtn} type="submit" disabled={adding}>
-                  {adding ? 'Adding…' : '+ Add Item'}
+                  <span className="material-icons-outlined" style={{ fontSize: 16 }}>add</span>
+                  {adding ? 'Adding…' : 'Add Item'}
                 </button>
               </form>
             )}
 
             {items.length === 0 ? (
               <div style={s.emptyState}>
-                <span style={{ fontSize: 36 }}>🏚</span>
+                <span className="material-icons-outlined" style={s.emptyIcon}>inventory_2</span>
                 <p style={s.emptyText}>No items in this list yet.</p>
               </div>
             ) : (
@@ -348,131 +364,94 @@ export default function ListDetail() {
 }
 
 const s: Record<string, React.CSSProperties> = {
-  page: { minHeight: '100vh', background: '#F7F2E8' },
+  page: { minHeight: '100vh', background: '#F8FAFC' },
   header: {
-    background: '#5C7A48',
-    padding: '0 28px',
-    height: 58,
-    display: 'flex',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    borderBottom: '2px solid #D4A84A',
+    background: '#FFFFFF', padding: '0 24px', height: 56,
+    display: 'flex', alignItems: 'center', justifyContent: 'space-between',
+    borderBottom: '1px solid #E5E7EB',
+    position: 'sticky' as const, top: 0, zIndex: 10,
+    boxShadow: '0 1px 2px rgba(0,0,0,0.04)',
   },
-  back: { color: '#C8E0A8', textDecoration: 'none', fontSize: 14, fontWeight: 500, width: 90 },
-  headerCenter: {
-    display: 'flex', alignItems: 'center', gap: 10,
-    flex: 1, justifyContent: 'center',
+  back: {
+    color: '#6B7280', textDecoration: 'none', fontSize: 13, fontWeight: 500,
+    display: 'flex', alignItems: 'center', gap: 4, width: 80,
   },
-  headerTitle: {
-    fontFamily: "'Lora', Georgia, serif",
-    fontSize: 20, fontWeight: 700, color: '#F5E4B0', margin: 0,
-  },
+  headerCenter: { display: 'flex', alignItems: 'center', gap: 8, flex: 1, justifyContent: 'center' },
+  headerIcon: { fontSize: 18, color: '#9CA3AF' },
+  headerTitle: { fontSize: 15, fontWeight: 600, color: '#111827', margin: 0 },
   shareBtn: {
-    background: 'transparent',
-    border: '1px solid #94C278',
-    color: '#C8E0A8',
-    borderRadius: 6,
-    padding: '6px 16px',
-    cursor: 'pointer',
-    fontWeight: 600,
-    fontSize: 13,
-    width: 90,
+    background: '#FFFFFF', border: '1px solid #E5E7EB', color: '#374151',
+    borderRadius: 6, padding: '5px 12px', cursor: 'pointer', fontWeight: 500, fontSize: 13,
+    display: 'flex', alignItems: 'center', gap: 4, width: 80,
   },
-  main: { maxWidth: 960, margin: '0 auto', padding: '32px 20px' },
+  main: { maxWidth: 960, margin: '0 auto', padding: '32px 24px' },
   errorBox: {
-    background: '#FBEEE8', color: '#C46A5A',
-    border: '1px solid #F0C4BC',
+    background: '#FEF2F2', color: '#DC2626', border: '1px solid #FECACA',
     borderRadius: 8, padding: '10px 14px', fontSize: 13, marginBottom: 20,
+    display: 'flex', alignItems: 'center',
   },
-  // Standard list styles
-  addForm: { display: 'flex', gap: 10, marginBottom: 24, flexWrap: 'wrap' as const },
+  addForm: { display: 'flex', gap: 8, marginBottom: 20, flexWrap: 'wrap' as const },
   input: {
-    padding: '10px 14px',
-    borderRadius: 8,
-    border: '1.5px solid #DDD0B0',
-    background: '#FDFCF8',
-    fontSize: 14,
-    color: '#3C2A18',
-    outline: 'none',
-    minWidth: 100,
+    padding: '9px 12px', borderRadius: 8, border: '1px solid #E5E7EB',
+    background: '#FFFFFF', fontSize: 14, color: '#111827', outline: 'none', minWidth: 100,
   },
   addBtn: {
-    padding: '10px 20px',
-    background: '#6B9652',
-    color: '#F7F2E8',
-    border: 'none',
-    borderRadius: 8,
-    fontWeight: 600,
-    cursor: 'pointer',
-    fontSize: 14,
-    whiteSpace: 'nowrap' as const,
+    padding: '9px 16px', background: '#16A34A', color: '#FFFFFF',
+    border: 'none', borderRadius: 8, fontWeight: 600, cursor: 'pointer', fontSize: 13,
+    whiteSpace: 'nowrap' as const, display: 'flex', alignItems: 'center', gap: 4,
   },
   emptyState: {
-    background: '#FDFCF8', border: '1.5px dashed #DDD0B0',
-    borderRadius: 12, padding: '48px 24px', textAlign: 'center' as const,
+    background: '#FFFFFF', border: '1px solid #E5E7EB',
+    borderRadius: 10, padding: '48px 24px', textAlign: 'center' as const,
   },
-  emptyText: { color: '#A08060', marginTop: 10, fontSize: 15 },
+  emptyIcon: { fontSize: 36, color: '#D1D5DB', display: 'block', marginBottom: 8 },
+  emptyText: { color: '#9CA3AF', fontSize: 14 },
   tableWrap: { overflowX: 'auto' as const },
   table: {
-    width: '100%',
-    borderCollapse: 'collapse' as const,
-    background: '#FDFCF8',
-    borderRadius: 12,
-    overflow: 'hidden',
-    border: '1.5px solid #DDD0B0',
+    width: '100%', borderCollapse: 'collapse' as const,
+    background: '#FFFFFF', borderRadius: 8, overflow: 'hidden', border: '1px solid #E5E7EB',
   },
   th: {
-    padding: '12px 16px',
-    textAlign: 'left' as const,
-    fontWeight: 600,
-    fontSize: 11,
-    letterSpacing: '0.7px',
-    textTransform: 'uppercase' as const,
-    color: '#A08060',
-    background: '#F2EAD8',
-    borderBottom: '1.5px solid #DDD0B0',
+    padding: '10px 14px', textAlign: 'left' as const,
+    fontWeight: 600, fontSize: 11, letterSpacing: '0.5px',
+    textTransform: 'uppercase' as const, color: '#9CA3AF',
+    background: '#F9FAFB', borderBottom: '1px solid #E5E7EB',
   },
-  // Grocery / todo styles
-  addTodoRow: { display: 'flex', gap: 8, marginBottom: 16 },
+  addTodoRow: { display: 'flex', gap: 8, marginBottom: 12 },
   todoInput: {
-    padding: '10px 14px',
-    borderRadius: 8, border: '1.5px solid #DDD0B0',
-    background: '#FDFCF8', fontSize: 14, color: '#3C2A18', outline: 'none',
-    minWidth: 80,
+    padding: '9px 12px', borderRadius: 8, border: '1px solid #E5E7EB',
+    background: '#FFFFFF', fontSize: 14, color: '#111827', outline: 'none', minWidth: 80,
   },
   addTodoBtn: {
-    padding: '10px 18px', background: '#6B9652',
-    color: '#F7F2E8', border: 'none', borderRadius: 8,
-    fontWeight: 600, fontSize: 13, cursor: 'pointer', whiteSpace: 'nowrap' as const,
+    padding: '9px 14px', background: '#16A34A', color: '#FFFFFF',
+    border: 'none', borderRadius: 8, fontWeight: 600, fontSize: 13, cursor: 'pointer',
+    whiteSpace: 'nowrap' as const, display: 'flex', alignItems: 'center', gap: 4,
   },
-  groceryList: { display: 'flex', flexDirection: 'column' as const, gap: 6 },
+  groceryList: { display: 'flex', flexDirection: 'column' as const, gap: 4 },
   groceryItem: {
     display: 'flex', alignItems: 'center', gap: 10,
-    border: '1.5px solid #DDD0B0', borderRadius: 8, padding: '10px 12px',
+    border: '1px solid #E5E7EB', borderRadius: 8, padding: '10px 12px',
   },
   dragHandle: {
-    color: '#C4A882', fontSize: 16, cursor: 'grab',
-    padding: '0 2px', flexShrink: 0, userSelect: 'none' as const,
-    touchAction: 'none',
+    fontSize: 20, color: '#D1D5DB', cursor: 'grab',
+    flexShrink: 0, userSelect: 'none' as const, touchAction: 'none',
   },
   checkbox: {
-    width: 22, height: 22, borderRadius: 6,
-    border: '2px solid #B8D89C', background: '#F7F2E8',
-    cursor: 'pointer', fontSize: 12, fontWeight: 700,
-    color: '#4D6E3A', display: 'flex', alignItems: 'center', justifyContent: 'center',
-    flexShrink: 0,
+    width: 20, height: 20, borderRadius: 5,
+    border: '1.5px solid #D1D5DB', background: '#FFFFFF',
+    cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center',
+    flexShrink: 0, color: '#FFFFFF',
   },
-  checkboxDone: {
-    background: '#89B86E', border: '2px solid #6B9652', color: '#FDFCF8',
-  },
+  checkboxDone: { background: '#16A34A', border: '1.5px solid #16A34A' },
   groceryName: { flex: 1, fontSize: 14, wordBreak: 'break-word' as const },
   qtyBadge: {
-    marginLeft: 6, fontSize: 12, fontWeight: 600,
-    color: '#6B9652', background: '#E0EED0',
+    marginLeft: 6, fontSize: 11, fontWeight: 600,
+    color: '#16A34A', background: '#F0FDF4',
     borderRadius: 10, padding: '1px 7px',
   },
   deleteGroceryBtn: {
-    background: 'none', border: 'none', color: '#C4A882',
-    cursor: 'pointer', fontSize: 13, padding: '0 4px', flexShrink: 0,
+    background: 'none', border: 'none', color: '#D1D5DB',
+    cursor: 'pointer', padding: '0 4px', flexShrink: 0,
+    display: 'flex', alignItems: 'center',
   },
 }

@@ -68,17 +68,31 @@ export default function Roadtrips() {
   return (
     <div style={s.page}>
       <header style={s.header} className="app-header">
-        <Link to="/" style={s.back}>← Home</Link>
-        <div style={s.headerCenter}>
-          <span style={{ fontSize: 20 }}>🚗</span>
-          <span style={s.logo}>Road Trips</span>
+        <Link to="/" style={s.logo}>
+          <span className="material-icons-outlined" style={s.logoIcon}>eco</span>
+          Rallebola
+        </Link>
+        <nav style={s.nav} className="app-nav">
+          <Link to="/my-lists" style={s.navLink}>My Lists</Link>
+          <Link to="/roadtrips" style={s.navLinkActive}>Road Trips</Link>
+        </nav>
+        <div style={s.headerRight}>
+          <span style={s.navUser} className="nav-user">
+            <span className="material-icons-outlined" style={{ fontSize: 16, color: '#9CA3AF' }}>person</span>
+            {user?.name}
+          </span>
+          <button style={s.logoutBtn} onClick={() => logout().then(() => navigate('/login'))}>
+            Sign out
+          </button>
         </div>
-        <button style={s.logoutBtn} onClick={() => logout().then(() => navigate('/login'))}>
-          Sign out
-        </button>
       </header>
 
       <main style={s.main} className="page-main">
+        <h2 style={s.sectionTitle}>
+          <span className="material-icons-outlined" style={s.sectionIcon}>directions_car</span>
+          Road Trips
+        </h2>
+
         <form onSubmit={createRoadtrip} style={s.createRow} className="create-row">
           <input
             style={s.createInput}
@@ -94,7 +108,8 @@ export default function Roadtrips() {
             title="Trip date (optional)"
           />
           <button style={s.createBtn} type="submit" disabled={creating}>
-            {creating ? 'Adding…' : '+ New Trip'}
+            <span className="material-icons-outlined" style={{ fontSize: 16 }}>add</span>
+            {creating ? 'Adding…' : 'New Trip'}
           </button>
         </form>
 
@@ -103,7 +118,7 @@ export default function Roadtrips() {
 
         {roadtrips.length === 0 ? (
           <div style={s.emptyState}>
-            <span style={{ fontSize: 36 }}>🗺️</span>
+            <span className="material-icons-outlined" style={s.emptyIcon}>map</span>
             <p style={s.emptyText}>No road trips yet. Plan your first adventure above.</p>
           </div>
         ) : (
@@ -114,11 +129,18 @@ export default function Roadtrips() {
                 <div style={s.cardBody}>
                   <Link to={`/roadtrips/${rt.id}`} style={s.cardTitle}>{rt.name}</Link>
                   <div style={s.cardMeta}>
-                    {rt.date && <span>📅 {formatDate(rt.date)}</span>}
-                    {rt.date && <span style={s.dot}>·</span>}
-                    <span>👥 {rt.member_count + 1} traveller{rt.member_count !== 0 ? 's' : ''}</span>
+                    {rt.date && (
+                      <>
+                        <span className="material-icons-outlined" style={{ fontSize: 12 }}>calendar_today</span>
+                        <span>{formatDate(rt.date)}</span>
+                        <span style={s.dot}>·</span>
+                      </>
+                    )}
+                    <span className="material-icons-outlined" style={{ fontSize: 12 }}>group</span>
+                    <span>{rt.member_count + 1} traveller{rt.member_count !== 0 ? 's' : ''}</span>
                     <span style={s.dot}>·</span>
-                    <span>✅ {rt.todo_count} task{rt.todo_count !== 1 ? 's' : ''}</span>
+                    <span className="material-icons-outlined" style={{ fontSize: 12 }}>checklist</span>
+                    <span>{rt.todo_count} task{rt.todo_count !== 1 ? 's' : ''}</span>
                     {rt.owner_id !== user?.id && (
                       <>
                         <span style={s.dot}>·</span>
@@ -128,7 +150,9 @@ export default function Roadtrips() {
                   </div>
                 </div>
                 {rt.owner_id === user?.id && (
-                  <button style={s.deleteBtn} onClick={() => deleteRoadtrip(rt.id)} title="Delete">✕</button>
+                  <button style={s.deleteBtn} onClick={() => deleteRoadtrip(rt.id)} title="Delete">
+                    <span className="material-icons-outlined" style={{ fontSize: 16 }}>delete</span>
+                  </button>
                 )}
               </div>
             ))}
@@ -140,87 +164,73 @@ export default function Roadtrips() {
 }
 
 const s: Record<string, React.CSSProperties> = {
-  page: { minHeight: '100vh', background: '#F7F2E8' },
+  page: { minHeight: '100vh', background: '#F8FAFC' },
   header: {
-    background: '#5C7A48',
-    padding: '0 28px',
-    height: 58,
-    display: 'flex',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    borderBottom: '2px solid #D4A84A',
+    background: '#FFFFFF', padding: '0 24px', height: 56,
+    display: 'flex', alignItems: 'center',
+    borderBottom: '1px solid #E5E7EB',
+    position: 'sticky' as const, top: 0, zIndex: 10,
+    boxShadow: '0 1px 2px rgba(0,0,0,0.04)',
   },
-  back: { color: '#C8E0A8', textDecoration: 'none', fontSize: 14, fontWeight: 500, minWidth: 60 },
-  headerCenter: { display: 'flex', alignItems: 'center', gap: 10, flex: 1, justifyContent: 'center' },
-  logo: { fontFamily: "'Lora', Georgia, serif", fontSize: 20, fontWeight: 700, color: '#F5E4B0' },
+  logo: { fontSize: 15, fontWeight: 700, color: '#111827', textDecoration: 'none', display: 'flex', alignItems: 'center', gap: 6 },
+  logoIcon: { fontSize: 20, color: '#16A34A' },
+  nav: { display: 'flex', alignItems: 'center', gap: 2, marginLeft: 20 },
+  navLink: { padding: '6px 10px', borderRadius: 6, fontSize: 13, fontWeight: 500, color: '#6B7280', textDecoration: 'none' },
+  navLinkActive: { padding: '6px 10px', borderRadius: 6, fontSize: 13, fontWeight: 600, color: '#16A34A', textDecoration: 'none', background: '#F0FDF4' },
+  headerRight: { marginLeft: 'auto', display: 'flex', alignItems: 'center', gap: 8 },
+  navUser: { fontSize: 13, color: '#6B7280', display: 'flex', alignItems: 'center', gap: 4 },
   logoutBtn: {
-    background: 'transparent',
-    border: '1px solid #94C278',
-    color: '#C8E0A8',
-    borderRadius: 6,
-    padding: '5px 14px',
-    cursor: 'pointer',
-    fontSize: 13,
-    fontWeight: 500,
-    minWidth: 60,
+    background: 'transparent', border: '1px solid #E5E7EB', color: '#6B7280',
+    borderRadius: 6, padding: '5px 12px', cursor: 'pointer', fontSize: 13,
   },
-  main: { maxWidth: 900, margin: '0 auto', padding: '40px 20px' },
-  createRow: { display: 'flex', gap: 10, marginBottom: 24, flexWrap: 'wrap' as const },
+  main: { maxWidth: 900, margin: '0 auto', padding: '40px 24px' },
+  sectionTitle: {
+    fontSize: 14, fontWeight: 600, color: '#374151', marginBottom: 16,
+    display: 'flex', alignItems: 'center', gap: 6,
+    textTransform: 'uppercase' as const, letterSpacing: '0.5px',
+  },
+  sectionIcon: { fontSize: 18, color: '#9CA3AF' },
+  createRow: { display: 'flex', gap: 8, marginBottom: 20, flexWrap: 'wrap' as const },
   createInput: {
-    flex: 1,
-    padding: '11px 16px',
-    borderRadius: 8,
-    border: '1.5px solid #DDD0B0',
-    background: '#FDFCF8',
-    fontSize: 15,
-    color: '#3C2A18',
-    outline: 'none',
-    minWidth: 140,
+    flex: 1, padding: '9px 12px',
+    borderRadius: 8, border: '1px solid #E5E7EB',
+    background: '#FFFFFF', fontSize: 14, color: '#111827', outline: 'none', minWidth: 140,
   },
   createBtn: {
-    padding: '11px 22px',
-    background: '#D4A84A',
-    color: '#3C2A18',
-    border: 'none',
-    borderRadius: 8,
-    fontWeight: 700,
-    fontSize: 14,
-    cursor: 'pointer',
-    whiteSpace: 'nowrap' as const,
+    padding: '9px 16px', background: '#D97706', color: '#FFFFFF',
+    border: 'none', borderRadius: 8, fontWeight: 600, fontSize: 13, cursor: 'pointer',
+    display: 'flex', alignItems: 'center', gap: 4, whiteSpace: 'nowrap' as const,
   },
   errorBox: {
-    background: '#FBEEE8', color: '#C46A5A',
-    border: '1px solid #F0C4BC', borderRadius: 8,
-    padding: '10px 14px', fontSize: 13, marginBottom: 16,
+    background: '#FEF2F2', color: '#DC2626', border: '1px solid #FECACA',
+    borderRadius: 8, padding: '10px 14px', fontSize: 13, marginBottom: 16,
   },
   emptyState: {
-    background: '#FDFCF8', border: '1.5px dashed #DDD0B0',
-    borderRadius: 12, padding: '48px 24px', textAlign: 'center' as const,
+    background: '#FFFFFF', border: '1px solid #E5E7EB',
+    borderRadius: 10, padding: '48px 24px', textAlign: 'center' as const,
   },
-  emptyText: { color: '#A08060', marginTop: 10, fontSize: 15 },
-  grid: { display: 'flex', flexDirection: 'column' as const, gap: 10 },
+  emptyIcon: { fontSize: 36, color: '#D1D5DB', display: 'block', marginBottom: 8 },
+  emptyText: { color: '#9CA3AF', fontSize: 14 },
+  grid: { display: 'flex', flexDirection: 'column' as const, gap: 8 },
   card: {
-    background: '#FDFCF8', border: '1.5px solid #DDD0B0',
-    borderRadius: 10, display: 'flex', alignItems: 'center', overflow: 'hidden',
+    background: '#FFFFFF', border: '1px solid #E5E7EB',
+    borderRadius: 8, display: 'flex', alignItems: 'center', overflow: 'hidden',
   },
-  cardAccent: { width: 5, alignSelf: 'stretch', background: '#D4A84A', flexShrink: 0 },
+  cardAccent: { width: 3, alignSelf: 'stretch', background: '#F59E0B', flexShrink: 0 },
   cardBody: {
-    flex: 1, padding: '14px 18px',
+    flex: 1, padding: '12px 16px',
     display: 'flex', flexDirection: 'column' as const, gap: 5,
   },
-  cardTitle: {
-    fontFamily: "'Lora', Georgia, serif",
-    fontWeight: 600, fontSize: 17, color: '#4D6E3A', textDecoration: 'none',
-  },
+  cardTitle: { fontWeight: 500, fontSize: 14, color: '#111827', textDecoration: 'none' },
   cardMeta: {
-    display: 'flex', gap: 6, flexWrap: 'wrap' as const,
-    fontSize: 12, color: '#A08060', alignItems: 'center',
+    display: 'flex', gap: 5, flexWrap: 'wrap' as const,
+    fontSize: 12, color: '#9CA3AF', alignItems: 'center',
   },
-  dot: { color: '#C4A882' },
-  ownerTag: { color: '#9B7A5A', fontWeight: 500 },
+  dot: { color: '#D1D5DB' },
+  ownerTag: { color: '#6B7280', fontWeight: 500 },
   deleteBtn: {
-    background: 'none', border: 'none', color: '#C4A882',
-    fontSize: 15, cursor: 'pointer', padding: '0 16px',
+    background: 'none', border: 'none', color: '#D1D5DB',
+    cursor: 'pointer', padding: '0 16px',
     alignSelf: 'stretch', display: 'flex', alignItems: 'center',
   },
 }

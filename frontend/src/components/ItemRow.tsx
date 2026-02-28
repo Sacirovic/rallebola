@@ -21,11 +21,11 @@ interface Props {
   onBorrowRequested: () => void
 }
 
-const statusStyles: Record<string, React.CSSProperties> = {
-  pending:  { background: '#F5E4B0', color: '#9B7A30', borderRadius: 6, padding: '3px 10px', fontSize: 12, fontWeight: 600 },
-  approved: { background: '#D8EDCC', color: '#4D6E3A', borderRadius: 6, padding: '3px 10px', fontSize: 12, fontWeight: 600 },
-  rejected: { background: '#FBEEE8', color: '#C46A5A', borderRadius: 6, padding: '3px 10px', fontSize: 12, fontWeight: 600 },
-  returned: { background: '#F2EAD8', color: '#9B7A5A', borderRadius: 6, padding: '3px 10px', fontSize: 12, fontWeight: 600 },
+const statusConfig: Record<string, { color: string; bg: string; border: string }> = {
+  pending:  { color: '#D97706', bg: '#FFFBEB', border: '#FDE68A' },
+  approved: { color: '#16A34A', bg: '#F0FDF4', border: '#BBF7D0' },
+  rejected: { color: '#DC2626', bg: '#FEF2F2', border: '#FECACA' },
+  returned: { color: '#6B7280', bg: '#F9FAFB', border: '#E5E7EB' },
 }
 
 export default function ItemRow({ item, rowIndex, canEdit, isOwner, onUpdated, onDeleted, onBorrowRequested }: Props) {
@@ -36,7 +36,7 @@ export default function ItemRow({ item, rowIndex, canEdit, isOwner, onUpdated, o
   const [saving, setSaving] = useState(false)
   const [showBorrow, setShowBorrow] = useState(false)
 
-  const rowBg = rowIndex % 2 === 0 ? '#FDFCF8' : '#F7F2E8'
+  const rowBg = rowIndex % 2 === 0 ? '#FFFFFF' : '#FAFAFA'
 
   const save = async () => {
     setSaving(true)
@@ -60,11 +60,11 @@ export default function ItemRow({ item, rowIndex, canEdit, isOwner, onUpdated, o
   }
 
   const td: React.CSSProperties = {
-    padding: '11px 16px',
-    borderBottom: '1px solid #EDE6D4',
+    padding: '10px 14px',
+    borderBottom: '1px solid #F3F4F6',
     verticalAlign: 'middle',
-    fontSize: 14,
-    color: '#3C2A18',
+    fontSize: 13,
+    color: '#6B7280',
     background: rowBg,
   }
 
@@ -87,34 +87,56 @@ export default function ItemRow({ item, rowIndex, canEdit, isOwner, onUpdated, o
         </td>
         <td style={td}>—</td>
         <td style={td}>
-          <button style={saveBtn} onClick={save} disabled={saving}>{saving ? '…' : 'Save'}</button>
-          <button style={cancelBtn} onClick={() => setEditing(false)}>Cancel</button>
+          <div style={{ display: 'flex', gap: 6 }}>
+            <button style={saveBtn} onClick={save} disabled={saving}>
+              <span className="material-icons-outlined" style={{ fontSize: 14 }}>check</span>
+              {saving ? '…' : 'Save'}
+            </button>
+            <button style={cancelBtn} onClick={() => setEditing(false)}>Cancel</button>
+          </div>
         </td>
       </tr>
     )
   }
 
   const status = item.borrow_status
+  const sc = status ? (statusConfig[status] ?? statusConfig.returned) : null
 
   return (
     <>
       <tr>
-        <td style={{ ...td, fontWeight: 500 }}>{item.name}</td>
-        <td style={{ ...td, color: '#6E4E30', fontWeight: 600 }}>{item.quantity}</td>
-        <td style={{ ...td, color: '#A08060' }}>{item.notes ?? '—'}</td>
+        <td style={{ ...td, fontWeight: 500, color: '#111827' }}>{item.name}</td>
+        <td style={{ ...td, fontWeight: 600, color: '#374151' }}>{item.quantity}</td>
+        <td style={{ ...td, color: '#9CA3AF' }}>{item.notes ?? '—'}</td>
         <td style={td}>
-          {status ? <span style={statusStyles[status] ?? {}}>{status}</span> : '—'}
+          {sc ? (
+            <span style={{
+              background: sc.bg, color: sc.color, border: `1px solid ${sc.border}`,
+              borderRadius: 6, padding: '2px 8px', fontSize: 11, fontWeight: 600,
+            }}>
+              {status}
+            </span>
+          ) : '—'}
         </td>
         <td style={td}>
-          <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap' }}>
+          <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap' as const }}>
             {canEdit && (
               <>
-                <button style={editBtn} onClick={() => setEditing(true)}>Edit</button>
-                <button style={deleteBtn} onClick={del}>Delete</button>
+                <button style={editBtn} onClick={() => setEditing(true)}>
+                  <span className="material-icons-outlined" style={{ fontSize: 13 }}>edit</span>
+                  Edit
+                </button>
+                <button style={deleteBtn} onClick={del}>
+                  <span className="material-icons-outlined" style={{ fontSize: 13 }}>delete</span>
+                  Delete
+                </button>
               </>
             )}
             {!isOwner && (
-              <button style={borrowBtn} onClick={() => setShowBorrow(true)}>Borrow</button>
+              <button style={borrowBtn} onClick={() => setShowBorrow(true)}>
+                <span className="material-icons-outlined" style={{ fontSize: 13 }}>swap_horiz</span>
+                Borrow
+              </button>
             )}
           </div>
         </td>
@@ -132,32 +154,31 @@ export default function ItemRow({ item, rowIndex, canEdit, isOwner, onUpdated, o
 }
 
 const cellInput: React.CSSProperties = {
-  padding: '6px 10px', borderRadius: 6,
-  border: '1.5px solid #DDD0B0', background: '#F7F2E8',
-  fontSize: 13, width: '100%', outline: 'none', color: '#3C2A18',
+  padding: '5px 9px', borderRadius: 6,
+  border: '1px solid #E5E7EB', background: '#FFFFFF',
+  fontSize: 13, width: '100%', outline: 'none', color: '#111827',
 }
 const saveBtn: React.CSSProperties = {
-  background: '#89B86E', color: '#FDFCF8',
-  border: 'none', borderRadius: 6, padding: '5px 12px',
-  cursor: 'pointer', fontSize: 12, fontWeight: 600, marginRight: 6,
+  background: '#F0FDF4', color: '#16A34A', border: '1px solid #BBF7D0',
+  borderRadius: 6, padding: '4px 10px', cursor: 'pointer', fontSize: 12, fontWeight: 500,
+  display: 'flex', alignItems: 'center', gap: 3,
 }
 const cancelBtn: React.CSSProperties = {
-  background: '#F2EAD8', color: '#6E4E30',
-  border: '1px solid #DDD0B0', borderRadius: 6, padding: '5px 10px',
-  cursor: 'pointer', fontSize: 12,
+  background: '#F9FAFB', color: '#6B7280', border: '1px solid #E5E7EB',
+  borderRadius: 6, padding: '4px 10px', cursor: 'pointer', fontSize: 12,
 }
 const editBtn: React.CSSProperties = {
-  background: '#E0EED0', color: '#4D6E3A',
-  border: '1px solid #B8D89C', borderRadius: 6, padding: '4px 10px',
-  cursor: 'pointer', fontSize: 12, fontWeight: 600,
+  background: '#F9FAFB', color: '#374151', border: '1px solid #E5E7EB',
+  borderRadius: 6, padding: '4px 9px', cursor: 'pointer', fontSize: 12, fontWeight: 500,
+  display: 'flex', alignItems: 'center', gap: 3,
 }
 const deleteBtn: React.CSSProperties = {
-  background: '#FBEEE8', color: '#C46A5A',
-  border: '1px solid #F0C4BC', borderRadius: 6, padding: '4px 10px',
-  cursor: 'pointer', fontSize: 12, fontWeight: 600,
+  background: '#FEF2F2', color: '#DC2626', border: '1px solid #FECACA',
+  borderRadius: 6, padding: '4px 9px', cursor: 'pointer', fontSize: 12, fontWeight: 500,
+  display: 'flex', alignItems: 'center', gap: 3,
 }
 const borrowBtn: React.CSSProperties = {
-  background: '#F5E4B0', color: '#9B7A30',
-  border: '1px solid #EAC870', borderRadius: 6, padding: '4px 10px',
-  cursor: 'pointer', fontSize: 12, fontWeight: 600,
+  background: '#FFFBEB', color: '#D97706', border: '1px solid #FDE68A',
+  borderRadius: 6, padding: '4px 9px', cursor: 'pointer', fontSize: 12, fontWeight: 500,
+  display: 'flex', alignItems: 'center', gap: 3,
 }

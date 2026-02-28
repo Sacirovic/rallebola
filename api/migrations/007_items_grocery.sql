@@ -36,6 +36,6 @@ JOIN (
   FROM items
 ) ranked ON ranked.id = i.id
 SET i.position = ranked.pos
-WHERE NOT EXISTS (
-  SELECT 1 FROM items i2 WHERE i2.list_id = i.list_id AND i2.position > 0
+WHERE i.list_id NOT IN (
+  SELECT list_id FROM (SELECT DISTINCT list_id FROM items WHERE position > 0) AS customised
 );
