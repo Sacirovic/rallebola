@@ -324,38 +324,15 @@ export default function RoadtripDetail() {
         </Link>
 
         <div style={s.headerCenter}>
-          {editing ? (
-            <div style={s.editRow}>
-              <input
-                style={s.editNameInput}
-                value={editName}
-                onChange={(e) => setEditName(e.target.value)}
-                autoFocus
-              />
-              <input
-                style={s.editDateInput}
-                type="date"
-                value={editDate}
-                onChange={(e) => setEditDate(e.target.value)}
-              />
-              <button style={s.editSaveBtn} onClick={saveEdit}>
-                <span className="material-icons-outlined" style={{ fontSize: 16 }}>check</span>
-              </button>
-              <button style={s.editCancelBtn} onClick={() => setEditing(false)}>
-                <span className="material-icons-outlined" style={{ fontSize: 16 }}>close</span>
-              </button>
-            </div>
-          ) : (
-            <div style={s.titleGroup}>
-              <h1 style={s.headerTitle}>{roadtrip.name}</h1>
-              {roadtrip.date && (
-                <span style={s.dateBadge}>
-                  <span className="material-icons-outlined" style={{ fontSize: 12 }}>calendar_today</span>
-                  {formatDate(roadtrip.date)}
-                </span>
-              )}
-            </div>
-          )}
+          <div style={s.titleGroup}>
+            <h1 style={s.headerTitle}>{roadtrip.name}</h1>
+            {roadtrip.date && (
+              <span style={s.dateBadge}>
+                <span className="material-icons-outlined" style={{ fontSize: 12 }}>calendar_today</span>
+                {formatDate(roadtrip.date)}
+              </span>
+            )}
+          </div>
         </div>
 
         {isOwner && !editing
@@ -368,6 +345,44 @@ export default function RoadtripDetail() {
       </header>
 
       <main style={s.main} className="page-main">
+
+        {/* Edit panel */}
+        {editing && (
+          <div style={s.editPanel}>
+            <div style={s.editPanelHeader}>
+              <span className="material-icons-outlined" style={{ fontSize: 16, color: '#9CA3AF' }}>edit</span>
+              <span style={s.editPanelTitle}>Edit Road Trip</span>
+            </div>
+            <div style={s.editFields}>
+              <div style={s.editField}>
+                <label style={s.editLabel}>Name</label>
+                <input
+                  style={s.editInput}
+                  value={editName}
+                  onChange={(e) => setEditName(e.target.value)}
+                  autoFocus
+                  onKeyDown={(e) => { if (e.key === 'Enter') saveEdit(); if (e.key === 'Escape') setEditing(false) }}
+                />
+              </div>
+              <div style={s.editField}>
+                <label style={s.editLabel}>Date (optional)</label>
+                <input
+                  style={{ ...s.editInput, flex: '0 0 180px' as any }}
+                  type="date"
+                  value={editDate}
+                  onChange={(e) => setEditDate(e.target.value)}
+                />
+              </div>
+            </div>
+            <div style={s.editActions}>
+              <button style={s.editCancelBtn} onClick={() => setEditing(false)}>Cancel</button>
+              <button style={s.editSaveBtn} onClick={saveEdit}>
+                <span className="material-icons-outlined" style={{ fontSize: 15 }}>check</span>
+                Save
+              </button>
+            </div>
+          </div>
+        )}
 
         {/* Tab bar */}
         <div style={s.tabBar}>
@@ -568,24 +583,35 @@ const s: Record<string, React.CSSProperties> = {
     overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' as const,
   },
   dateBadge: { fontSize: 11, color: '#9CA3AF', display: 'flex', alignItems: 'center', gap: 3, whiteSpace: 'nowrap' as const },
-  editRow: { display: 'flex', alignItems: 'center', gap: 6, flex: 1 },
-  editNameInput: {
-    flex: 1, padding: '5px 10px', borderRadius: 6,
-    border: '1px solid #D1D5DB', background: '#FFFFFF',
-    color: '#111827', fontSize: 14, outline: 'none', fontWeight: 600,
+  editPanel: {
+    background: '#FFFFFF', border: '1px solid #E5E7EB',
+    borderRadius: 10, padding: '20px', marginBottom: 24,
+    boxShadow: '0 1px 4px rgba(0,0,0,0.05)',
   },
-  editDateInput: {
-    padding: '5px 8px', borderRadius: 6,
-    border: '1px solid #D1D5DB', background: '#FFFFFF',
-    color: '#111827', fontSize: 13, outline: 'none',
+  editPanelHeader: {
+    display: 'flex', alignItems: 'center', gap: 6, marginBottom: 16,
   },
+  editPanelTitle: {
+    fontSize: 13, fontWeight: 600, color: '#374151',
+    textTransform: 'uppercase' as const, letterSpacing: '0.5px',
+  },
+  editFields: { display: 'flex', gap: 12, flexWrap: 'wrap' as const, marginBottom: 16 },
+  editField: { display: 'flex', flexDirection: 'column' as const, gap: 5, flex: 1, minWidth: 160 },
+  editLabel: { fontSize: 11, fontWeight: 600, color: '#9CA3AF', textTransform: 'uppercase' as const, letterSpacing: '0.5px' },
+  editInput: {
+    padding: '9px 12px', borderRadius: 8,
+    border: '1px solid #E5E7EB', background: '#FFFFFF',
+    color: '#111827', fontSize: 14, outline: 'none',
+  },
+  editActions: { display: 'flex', gap: 8, justifyContent: 'flex-end' },
   editSaveBtn: {
-    background: '#16A34A', color: '#FFFFFF', border: 'none', borderRadius: 6,
-    padding: '5px 10px', cursor: 'pointer', display: 'flex', alignItems: 'center',
+    padding: '8px 16px', background: '#16A34A', color: '#FFFFFF', border: 'none',
+    borderRadius: 8, fontWeight: 600, fontSize: 13, cursor: 'pointer',
+    display: 'flex', alignItems: 'center', gap: 4,
   },
   editCancelBtn: {
-    background: '#F9FAFB', color: '#6B7280', border: '1px solid #E5E7EB',
-    borderRadius: 6, padding: '5px 10px', cursor: 'pointer', display: 'flex', alignItems: 'center',
+    padding: '8px 14px', background: '#F9FAFB', color: '#374151',
+    border: '1px solid #E5E7EB', borderRadius: 8, cursor: 'pointer', fontSize: 13,
   },
   editBtn: {
     background: '#FFFFFF', border: '1px solid #E5E7EB', color: '#374151',
