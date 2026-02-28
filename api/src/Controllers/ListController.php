@@ -16,7 +16,7 @@ class ListController
             'SELECT l.*,
                     EXISTS(SELECT 1 FROM list_shares ls WHERE ls.list_id = l.id) AS is_shared
              FROM lists l
-             WHERE l.user_id = ?
+             WHERE l.user_id = ? AND l.roadtrip_id IS NULL
              ORDER BY l.updated_at DESC'
         );
         $stmt->execute([$userId]);
@@ -131,7 +131,22 @@ class ListController
              WHERE l.id = ? AND (l.user_id = ? OR ls.shared_with_user_id = ?)'
         );
         $stmt->execute([$userId, $listId, $userId, $userId]);
-        return $stmt->fetch();
+        $row = $stmt->fetch();
+        if ($row) return $row;
+
+        // Try roadtrip membership
+        $stmt = $pdo->prepare(
+            'SELECT l.* FROM lists l
+             WHERE l.id = ? AND l.roadtrip_id IS NOT NULL
+             AND (
+               EXISTS(SELECT 1 FROM roadtrip_members rm WHERE rm.roadtrip_id = l.roadtrip_id AND rm.user_id = ?)
+               OR EXISTS(SELECT 1 FROM roadtrips r WHERE r.id = l.roadtrip_id AND r.owner_id = ?)
+             )'
+        );
+        $stmt->execute([$listId, $userId, $userId]);
+        $row = $stmt->fetch();
+        if ($row) { $row['permission'] = 'edit'; return $row; }
+        return false;
     }
 
     public function getOwnedList(int $listId, int $userId): array|false

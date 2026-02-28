@@ -50,6 +50,9 @@ class RoadtripController
         $stmt->execute([$userId, $name, $date]);
         $id = (int) $pdo->lastInsertId();
 
+        $stmt = $pdo->prepare('INSERT INTO lists (user_id, name, roadtrip_id) VALUES (?, ?, ?)');
+        $stmt->execute([$userId, $name . ' – Grocery List', $id]);
+
         $stmt = $pdo->prepare(
             'SELECT r.*, u.name AS owner_name FROM roadtrips r
              JOIN users u ON u.id = r.owner_id WHERE r.id = ?'
@@ -91,6 +94,11 @@ class RoadtripController
             $t['done'] = (bool) $t['done'];
         }
         $roadtrip['todos'] = $todos;
+
+        $stmt = $pdo->prepare('SELECT id FROM lists WHERE roadtrip_id = ? LIMIT 1');
+        $stmt->execute([$roadtripId]);
+        $groceryRow = $stmt->fetch();
+        $roadtrip['grocery_list_id'] = $groceryRow ? (int) $groceryRow['id'] : null;
 
         Response::json($roadtrip);
     }

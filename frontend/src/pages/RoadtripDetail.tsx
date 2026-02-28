@@ -26,6 +26,7 @@ interface Roadtrip {
   date: string | null
   owner_id: number
   owner_name: string
+  grocery_list_id: number | null
   members: Member[]
   todos: Todo[]
 }
@@ -254,6 +255,20 @@ export default function RoadtripDetail() {
       </header>
 
       <main style={s.main} className="page-main">
+
+        {/* Grocery List */}
+        {roadtrip.grocery_list_id && (
+          <section style={s.section}>
+            <h2 style={s.sectionTitle}>🛒 Grocery List</h2>
+            <Link
+              to={`/lists/${roadtrip.grocery_list_id}`}
+              state={{ fromRoadtrip: roadtripId }}
+              style={s.groceryBtn}
+            >
+              Open Grocery List →
+            </Link>
+          </section>
+        )}
 
         {/* Travellers */}
         <section style={s.section}>
@@ -484,5 +499,15 @@ const s: Record<string, React.CSSProperties> = {
   deleteTodoBtn: {
     background: 'none', border: 'none', color: '#C4A882',
     cursor: 'pointer', fontSize: 13, padding: '0 4px', flexShrink: 0,
+  },
+  groceryBtn: {
+    display: 'inline-block',
+    padding: '10px 20px',
+    background: '#6B9652',
+    color: '#F7F2E8',
+    borderRadius: 8,
+    textDecoration: 'none',
+    fontWeight: 600,
+    fontSize: 14,
   },
 }

@@ -13,7 +13,7 @@ class ItemController
     {
         $pdo  = Database::getInstance();
         $stmt = $pdo->prepare(
-            'SELECT l.user_id, ls.permission
+            'SELECT l.user_id, l.roadtrip_id, ls.permission
              FROM lists l
              LEFT JOIN list_shares ls ON ls.list_id = l.id AND ls.shared_with_user_id = ?
              WHERE l.id = ?'
@@ -31,6 +31,16 @@ class ItemController
 
         if ($row['permission'] !== null) {
             return $row['permission']; // 'view' or 'edit'
+        }
+
+        if ($row['roadtrip_id'] !== null) {
+            $stmt2 = $pdo->prepare(
+                'SELECT 1 FROM roadtrip_members WHERE roadtrip_id = ? AND user_id = ?
+                 UNION
+                 SELECT 1 FROM roadtrips WHERE id = ? AND owner_id = ?'
+            );
+            $stmt2->execute([$row['roadtrip_id'], $userId, $row['roadtrip_id'], $userId]);
+            if ($stmt2->fetch()) return 'edit';
         }
 
         return null; // no access

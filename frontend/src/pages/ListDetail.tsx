@@ -1,5 +1,5 @@
 import { useState, useEffect, FormEvent } from 'react'
-import { useParams, Link, useNavigate } from 'react-router-dom'
+import { useParams, Link, useNavigate, useLocation } from 'react-router-dom'
 import { useAuth } from '../context/AuthContext'
 import client from '../api/client'
 import ItemRow from '../components/ItemRow'
@@ -9,6 +9,7 @@ interface InventoryList {
   id: number
   name: string
   user_id: number
+  roadtrip_id: number | null
   permission?: string
 }
 
@@ -31,6 +32,8 @@ export default function ListDetail() {
   const { id } = useParams<{ id: string }>()
   const { user } = useAuth()
   const navigate = useNavigate()
+  const location = useLocation()
+  const fromRoadtrip: number | undefined = (location.state as any)?.fromRoadtrip
   const listId = Number(id)
 
   const [list, setList] = useState<InventoryList | null>(null)
@@ -100,12 +103,15 @@ export default function ListDetail() {
   return (
     <div style={s.page}>
       <header style={s.header} className="app-header">
-        <Link to="/" style={s.back}>← Back</Link>
+        {fromRoadtrip
+          ? <Link to={`/roadtrips/${fromRoadtrip}`} style={s.back}>← Roadtrip</Link>
+          : <Link to="/" style={s.back}>← Back</Link>
+        }
         <div style={s.headerCenter}>
           <span style={{ fontSize: 20 }}>🌾</span>
           <h1 style={s.headerTitle}>{list.name}</h1>
         </div>
-        {isOwner
+        {isOwner && !list.roadtrip_id
           ? <button style={s.shareBtn} onClick={() => setShowShare(true)}>🤝 Share</button>
           : <div style={{ width: 90 }} />
         }
