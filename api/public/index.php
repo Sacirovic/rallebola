@@ -6,9 +6,19 @@ require_once __DIR__ . '/../vendor/autoload.php';
 
 use App\Router;
 
+// Store sessions in the bind-mounted api directory so they survive container restarts
+$sessionDir = __DIR__ . '/../storage/sessions';
+if (!is_dir($sessionDir)) {
+    mkdir($sessionDir, 0700, true);
+}
+session_save_path($sessionDir);
+
+$thirtyDays = 60 * 60 * 24 * 30;
+ini_set('session.gc_maxlifetime', (string) $thirtyDays);
+
 // Configure session cookie before session_start
 session_set_cookie_params([
-    'lifetime' => 0,
+    'lifetime' => $thirtyDays,
     'path'     => '/',
     'secure'   => false,
     'httponly' => true,

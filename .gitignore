@@ -1,0 +1,6 @@
+.env
+api/storage/sessions/*
+!api/storage/sessions/.gitkeep
+api/vendor/
+frontend/node_modules/
+frontend/dist/
