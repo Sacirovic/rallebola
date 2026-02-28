@@ -23,6 +23,17 @@ session_set_cookie_params([
 ]);
 session_start();
 
+// Refresh the cookie expiry on every request so active users are never logged out
+if (!empty($_SESSION)) {
+    setcookie(session_name(), session_id(), [
+        'expires'  => time() + $thirtyDays,
+        'path'     => '/',
+        'secure'   => false,
+        'httponly' => true,
+        'samesite' => 'Lax',
+    ]);
+}
+
 // Handle CORS preflight
 if ($_SERVER['REQUEST_METHOD'] === 'OPTIONS') {
     header('Access-Control-Allow-Origin: *');
