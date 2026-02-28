@@ -13,7 +13,11 @@ services:
       - db-data:/var/lib/mysql
       - ./api/migrations/001_init.sql:/docker-entrypoint-initdb.d/001_init.sql:ro
       - ./api/migrations/002_roadtrips.sql:/docker-entrypoint-initdb.d/002_roadtrips.sql:ro
+      - ./api/migrations/003_todo_creator.sql:/docker-entrypoint-initdb.d/003_todo_creator.sql:ro
+      - ./api/migrations/004_todo_position.sql:/docker-entrypoint-initdb.d/004_todo_position.sql:ro
       - ./api/migrations/005_sessions.sql:/docker-entrypoint-initdb.d/005_sessions.sql:ro
+      - ./api/migrations/006_roadtrip_grocery_list.sql:/docker-entrypoint-initdb.d/006_roadtrip_grocery_list.sql:ro
+      - ./api/migrations/007_items_grocery.sql:/docker-entrypoint-initdb.d/007_items_grocery.sql:ro
     healthcheck:
       test: ["CMD", "mysqladmin", "ping", "-h", "localhost", "-u", "root", "-p${MYSQL_ROOT_PASSWORD}"]
       interval: 10s
