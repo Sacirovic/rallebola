@@ -4,6 +4,21 @@ import { useAuth } from '../context/AuthContext'
 import client from '../api/client'
 import ItemRow from '../components/ItemRow'
 import ShareModal from '../components/ShareModal'
+import {
+  DndContext,
+  DragEndEvent,
+  PointerSensor,
+  closestCenter,
+  useSensor,
+  useSensors,
+} from '@dnd-kit/core'
+import {
+  SortableContext,
+  arrayMove,
+  useSortable,
+  verticalListSortingStrategy,
+} from '@dnd-kit/sortable'
+import { CSS } from '@dnd-kit/utilities'
 
 interface InventoryList {
   id: number
@@ -19,6 +34,8 @@ interface Item {
   name: string
   quantity: number
   notes: string | null
+  checked: boolean
+  position: number
   borrow_status?: string | null
 }
 
@@ -27,6 +44,57 @@ interface BorrowRequest {
   requester_id: number
   status: string
 }
+
+// ── Sortable grocery item ──────────────────────────────────────────────────
+
+function SortableGroceryItem({ item, canEdit, onToggle, onDelete }: {
+  item: Item
+  canEdit: boolean
+  onToggle: () => void
+  onDelete: () => void
+}) {
+  const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({ id: item.id })
+
+  return (
+    <div
+      ref={setNodeRef}
+      style={{
+        ...s.groceryItem,
+        background: item.checked ? '#F2EAD8' : '#FDFCF8',
+        transform: CSS.Transform.toString(transform),
+        transition,
+        opacity: isDragging ? 0.4 : 1,
+        zIndex: isDragging ? 1 : undefined,
+        boxShadow: isDragging ? '0 4px 12px rgba(0,0,0,0.12)' : undefined,
+      }}
+      {...attributes}
+    >
+      {canEdit && (
+        <div style={s.dragHandle} {...listeners} title="Drag to reorder">⠿</div>
+      )}
+      <button
+        style={{ ...s.checkbox, ...(item.checked ? s.checkboxDone : {}) }}
+        onClick={onToggle}
+        title={item.checked ? 'Mark not bought' : 'Mark bought'}
+      >
+        {item.checked ? '✓' : ''}
+      </button>
+      <span style={{
+        ...s.groceryName,
+        textDecoration: item.checked ? 'line-through' : 'none',
+        color: item.checked ? '#A08060' : '#3C2A18',
+      }}>
+        {item.name}
+        {item.quantity > 1 && <span style={s.qtyBadge}>×{item.quantity}</span>}
+      </span>
+      {canEdit && (
+        <button style={s.deleteGroceryBtn} onClick={onDelete} title="Delete">✕</button>
+      )}
+    </div>
+  )
+}
+
+// ── Page ───────────────────────────────────────────────────────────────────
 
 export default function ListDetail() {
   const { id } = useParams<{ id: string }>()
@@ -47,6 +115,11 @@ export default function ListDetail() {
 
   const isOwner = list?.user_id === user?.id
   const canEdit = isOwner || list?.permission === 'edit'
+  const isGroceryList = Boolean(list?.roadtrip_id)
+
+  const sensors = useSensors(
+    useSensor(PointerSensor, { activationConstraint: { distance: 8 } })
+  )
 
   useEffect(() => { fetchData() }, [listId])
 
@@ -59,16 +132,19 @@ export default function ListDetail() {
       setList(listRes.data)
 
       let borrowMap: Record<number, string> = {}
-      try {
-        const endpoint = listRes.data.user_id === user?.id
-          ? '/borrow-requests/incoming'
-          : '/borrow-requests/outgoing'
-        const br = await client.get(endpoint)
-        br.data.forEach((r: BorrowRequest) => { borrowMap[r.item_id] = r.status })
-      } catch (_) {}
+      if (!listRes.data.roadtrip_id) {
+        try {
+          const endpoint = listRes.data.user_id === user?.id
+            ? '/borrow-requests/incoming'
+            : '/borrow-requests/outgoing'
+          const br = await client.get(endpoint)
+          br.data.forEach((r: BorrowRequest) => { borrowMap[r.item_id] = r.status })
+        } catch (_) {}
+      }
 
       setItems(itemsRes.data.map((item: Item) => ({
         ...item,
+        checked: Boolean(item.checked),
         borrow_status: borrowMap[item.id] ?? null,
       })))
     } catch (err: any) {
@@ -87,7 +163,7 @@ export default function ListDetail() {
         quantity: parseInt(newQty) || 1,
         notes: newNotes.trim() || null,
       })
-      setItems((prev) => [...prev, { ...res.data, borrow_status: null }])
+      setItems((prev) => [...prev, { ...res.data, checked: false, borrow_status: null }])
       setNewName('')
       setNewQty('1')
       setNewNotes('')
@@ -96,6 +172,29 @@ export default function ListDetail() {
     } finally {
       setAdding(false)
     }
+  }
+
+  const toggleChecked = async (item: Item) => {
+    const res = await client.put(`/lists/${listId}/items/${item.id}`, { checked: !item.checked })
+    setItems((prev) => prev.map((it) =>
+      it.id === item.id ? { ...res.data, checked: Boolean(res.data.checked), borrow_status: null } : it
+    ))
+  }
+
+  const deleteItem = async (itemId: number) => {
+    await client.delete(`/lists/${listId}/items/${itemId}`)
+    setItems((prev) => prev.filter((it) => it.id !== itemId))
+  }
+
+  const handleDragEnd = (event: DragEndEvent) => {
+    const { active, over } = event
+    if (!over || active.id === over.id) return
+    const oldIndex = items.findIndex((it) => it.id === active.id)
+    const newIndex  = items.findIndex((it) => it.id === over.id)
+    const reordered = arrayMove(items, oldIndex, newIndex)
+    setItems(reordered)
+    client.put(`/lists/${listId}/items/reorder`, { ids: reordered.map((it) => it.id) })
+      .catch(() => setItems(items))
   }
 
   if (!list) return <div style={{ padding: 32, color: '#A08060' }}>Loading…</div>
@@ -108,7 +207,7 @@ export default function ListDetail() {
           : <Link to="/" style={s.back}>← Back</Link>
         }
         <div style={s.headerCenter}>
-          <span style={{ fontSize: 20 }}>🌾</span>
+          <span style={{ fontSize: 20 }}>{isGroceryList ? '🛒' : '🌾'}</span>
           <h1 style={s.headerTitle}>{list.name}</h1>
         </div>
         {isOwner && !list.roadtrip_id
@@ -120,73 +219,126 @@ export default function ListDetail() {
       <main style={s.main} className="page-main">
         {error && <div style={s.errorBox}>{error}</div>}
 
-        {canEdit && (
-          <form onSubmit={addItem} style={s.addForm} className="add-form">
-            <input
-              style={{ ...s.input, flex: 2 }}
-              placeholder="Item name"
-              value={newName}
-              onChange={(e) => setNewName(e.target.value)}
-            />
-            <input
-              style={{ ...s.input, flex: '0 0 80px' as any }}
-              type="number"
-              min={1}
-              placeholder="Qty"
-              value={newQty}
-              onChange={(e) => setNewQty(e.target.value)}
-            />
-            <input
-              style={{ ...s.input, flex: 2 }}
-              placeholder="Notes (optional)"
-              value={newNotes}
-              onChange={(e) => setNewNotes(e.target.value)}
-            />
-            <button style={s.addBtn} type="submit" disabled={adding}>
-              {adding ? 'Adding…' : '+ Add Item'}
-            </button>
-          </form>
-        )}
+        {isGroceryList ? (
+          // ── Grocery / todo-style view ──────────────────────────────────
+          <>
+            {canEdit && (
+              <form onSubmit={addItem} style={s.addTodoRow} className="add-form">
+                <input
+                  style={{ ...s.todoInput, flex: 2 }}
+                  placeholder="Item…"
+                  value={newName}
+                  onChange={(e) => setNewName(e.target.value)}
+                />
+                <input
+                  style={{ ...s.todoInput, flex: '0 0 70px' as any }}
+                  type="number"
+                  min={1}
+                  placeholder="Qty"
+                  value={newQty}
+                  onChange={(e) => setNewQty(e.target.value)}
+                />
+                <button style={s.addTodoBtn} type="submit" disabled={adding}>
+                  {adding ? '…' : '+ Add'}
+                </button>
+              </form>
+            )}
 
-        {items.length === 0 ? (
-          <div style={s.emptyState}>
-            <span style={{ fontSize: 36 }}>🏚</span>
-            <p style={s.emptyText}>No items in this list yet.</p>
-          </div>
+            {items.length === 0 ? (
+              <div style={s.emptyState}>
+                <span style={{ fontSize: 36 }}>🛒</span>
+                <p style={s.emptyText}>No items yet. Add your first one above.</p>
+              </div>
+            ) : (
+              <DndContext sensors={sensors} collisionDetection={closestCenter} onDragEnd={handleDragEnd}>
+                <SortableContext items={items.map((it) => it.id)} strategy={verticalListSortingStrategy}>
+                  <div style={s.groceryList}>
+                    {items.map((item) => (
+                      <SortableGroceryItem
+                        key={item.id}
+                        item={item}
+                        canEdit={canEdit}
+                        onToggle={() => toggleChecked(item)}
+                        onDelete={() => deleteItem(item.id)}
+                      />
+                    ))}
+                  </div>
+                </SortableContext>
+              </DndContext>
+            )}
+          </>
         ) : (
-          <div style={s.tableWrap}>
-            <table style={s.table}>
-              <thead>
-                <tr>
-                  <th style={s.th}>Item</th>
-                  <th style={{ ...s.th, width: 70 }}>Qty</th>
-                  <th style={s.th}>Notes</th>
-                  <th style={{ ...s.th, width: 110 }}>Borrow</th>
-                  <th style={{ ...s.th, width: 190 }}>Actions</th>
-                </tr>
-              </thead>
-              <tbody>
-                {items.map((item, i) => (
-                  <ItemRow
-                    key={item.id}
-                    item={item}
-                    rowIndex={i}
-                    canEdit={canEdit}
-                    isOwner={isOwner}
-                    onUpdated={(updated) =>
-                      setItems((prev) =>
-                        prev.map((it) =>
-                          it.id === updated.id ? { ...updated, borrow_status: it.borrow_status } : it
-                        )
-                      )
-                    }
-                    onDeleted={(itemId) => setItems((prev) => prev.filter((it) => it.id !== itemId))}
-                    onBorrowRequested={fetchData}
-                  />
-                ))}
-              </tbody>
-            </table>
-          </div>
+          // ── Standard table view ───────────────────────────────────────
+          <>
+            {canEdit && (
+              <form onSubmit={addItem} style={s.addForm} className="add-form">
+                <input
+                  style={{ ...s.input, flex: 2 }}
+                  placeholder="Item name"
+                  value={newName}
+                  onChange={(e) => setNewName(e.target.value)}
+                />
+                <input
+                  style={{ ...s.input, flex: '0 0 80px' as any }}
+                  type="number"
+                  min={1}
+                  placeholder="Qty"
+                  value={newQty}
+                  onChange={(e) => setNewQty(e.target.value)}
+                />
+                <input
+                  style={{ ...s.input, flex: 2 }}
+                  placeholder="Notes (optional)"
+                  value={newNotes}
+                  onChange={(e) => setNewNotes(e.target.value)}
+                />
+                <button style={s.addBtn} type="submit" disabled={adding}>
+                  {adding ? 'Adding…' : '+ Add Item'}
+                </button>
+              </form>
+            )}
+
+            {items.length === 0 ? (
+              <div style={s.emptyState}>
+                <span style={{ fontSize: 36 }}>🏚</span>
+                <p style={s.emptyText}>No items in this list yet.</p>
+              </div>
+            ) : (
+              <div style={s.tableWrap}>
+                <table style={s.table}>
+                  <thead>
+                    <tr>
+                      <th style={s.th}>Item</th>
+                      <th style={{ ...s.th, width: 70 }}>Qty</th>
+                      <th style={s.th}>Notes</th>
+                      <th style={{ ...s.th, width: 110 }}>Borrow</th>
+                      <th style={{ ...s.th, width: 190 }}>Actions</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {items.map((item, i) => (
+                      <ItemRow
+                        key={item.id}
+                        item={item}
+                        rowIndex={i}
+                        canEdit={canEdit}
+                        isOwner={isOwner}
+                        onUpdated={(updated) =>
+                          setItems((prev) =>
+                            prev.map((it) =>
+                              it.id === updated.id ? { ...updated, borrow_status: it.borrow_status } : it
+                            )
+                          )
+                        }
+                        onDeleted={(itemId) => setItems((prev) => prev.filter((it) => it.id !== itemId))}
+                        onBorrowRequested={fetchData}
+                      />
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            )}
+          </>
         )}
       </main>
 
@@ -232,6 +384,7 @@ const s: Record<string, React.CSSProperties> = {
     border: '1px solid #F0C4BC',
     borderRadius: 8, padding: '10px 14px', fontSize: 13, marginBottom: 20,
   },
+  // Standard list styles
   addForm: { display: 'flex', gap: 10, marginBottom: 24, flexWrap: 'wrap' as const },
   input: {
     padding: '10px 14px',
@@ -278,5 +431,48 @@ const s: Record<string, React.CSSProperties> = {
     color: '#A08060',
     background: '#F2EAD8',
     borderBottom: '1.5px solid #DDD0B0',
+  },
+  // Grocery / todo styles
+  addTodoRow: { display: 'flex', gap: 8, marginBottom: 16 },
+  todoInput: {
+    padding: '10px 14px',
+    borderRadius: 8, border: '1.5px solid #DDD0B0',
+    background: '#FDFCF8', fontSize: 14, color: '#3C2A18', outline: 'none',
+    minWidth: 80,
+  },
+  addTodoBtn: {
+    padding: '10px 18px', background: '#6B9652',
+    color: '#F7F2E8', border: 'none', borderRadius: 8,
+    fontWeight: 600, fontSize: 13, cursor: 'pointer', whiteSpace: 'nowrap' as const,
+  },
+  groceryList: { display: 'flex', flexDirection: 'column' as const, gap: 6 },
+  groceryItem: {
+    display: 'flex', alignItems: 'center', gap: 10,
+    border: '1.5px solid #DDD0B0', borderRadius: 8, padding: '10px 12px',
+  },
+  dragHandle: {
+    color: '#C4A882', fontSize: 16, cursor: 'grab',
+    padding: '0 2px', flexShrink: 0, userSelect: 'none' as const,
+    touchAction: 'none',
+  },
+  checkbox: {
+    width: 22, height: 22, borderRadius: 6,
+    border: '2px solid #B8D89C', background: '#F7F2E8',
+    cursor: 'pointer', fontSize: 12, fontWeight: 700,
+    color: '#4D6E3A', display: 'flex', alignItems: 'center', justifyContent: 'center',
+    flexShrink: 0,
+  },
+  checkboxDone: {
+    background: '#89B86E', border: '2px solid #6B9652', color: '#FDFCF8',
+  },
+  groceryName: { flex: 1, fontSize: 14, wordBreak: 'break-word' as const },
+  qtyBadge: {
+    marginLeft: 6, fontSize: 12, fontWeight: 600,
+    color: '#6B9652', background: '#E0EED0',
+    borderRadius: 10, padding: '1px 7px',
+  },
+  deleteGroceryBtn: {
+    background: 'none', border: 'none', color: '#C4A882',
+    cursor: 'pointer', fontSize: 13, padding: '0 4px', flexShrink: 0,
   },
 }

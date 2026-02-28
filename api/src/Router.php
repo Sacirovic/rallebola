@@ -37,6 +37,7 @@ class Router
             // Items (protected)
             $r->addRoute('GET',    '/lists/{id}/items',          [ItemController::class, 'index']);
             $r->addRoute('POST',   '/lists/{id}/items',          [ItemController::class, 'store']);
+            $r->addRoute('PUT',    '/lists/{id}/items/reorder',  [ItemController::class, 'reorder']);
             $r->addRoute('PUT',    '/lists/{id}/items/{itemId}', [ItemController::class, 'update']);
             $r->addRoute('DELETE', '/lists/{id}/items/{itemId}', [ItemController::class, 'destroy']);
 

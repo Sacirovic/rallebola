@@ -57,7 +57,7 @@ class ItemController
         }
 
         $pdo  = Database::getInstance();
-        $stmt = $pdo->prepare('SELECT * FROM items WHERE list_id = ? ORDER BY created_at ASC');
+        $stmt = $pdo->prepare('SELECT * FROM items WHERE list_id = ? ORDER BY position ASC, created_at ASC');
         $stmt->execute([$listId]);
         Response::json($stmt->fetchAll());
     }
@@ -143,6 +143,11 @@ class ItemController
             $params[]  = $body['notes'];
         }
 
+        if (isset($body['checked'])) {
+            $fields[] = 'checked = ?';
+            $params[]  = (int)(bool) $body['checked'];
+        }
+
         if (empty($fields)) {
             Response::error('Nothing to update');
             return;
@@ -183,5 +188,37 @@ class ItemController
 
         $pdo->prepare('DELETE FROM items WHERE id = ?')->execute([$itemId]);
         Response::json(['message' => 'Item deleted']);
+    }
+
+    public function reorder(array $vars, ?int $userId): void
+    {
+        $listId = (int) $vars['id'];
+        $access = $this->getListAccess($listId, $userId);
+
+        if ($access === null) {
+            Response::notFound('List not found or access denied');
+            return;
+        }
+
+        if ($access === 'view') {
+            Response::forbidden('Read-only access');
+            return;
+        }
+
+        $body = json_decode(file_get_contents('php://input'), true) ?? [];
+        $ids  = $body['ids'] ?? [];
+
+        if (empty($ids)) {
+            Response::error('ids is required');
+            return;
+        }
+
+        $pdo  = Database::getInstance();
+        $stmt = $pdo->prepare('UPDATE items SET position = ? WHERE id = ? AND list_id = ?');
+        foreach (array_values($ids) as $position => $itemId) {
+            $stmt->execute([$position, (int) $itemId, $listId]);
+        }
+
+        Response::json(['message' => 'Reordered']);
     }
 }
