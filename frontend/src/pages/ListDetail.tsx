@@ -326,7 +326,7 @@ export default function ListDetail() {
                         onUpdated={(updated) =>
                           setItems((prev) =>
                             prev.map((it) =>
-                              it.id === updated.id ? { ...updated, borrow_status: it.borrow_status } : it
+                              it.id === updated.id ? { ...it, ...updated, borrow_status: it.borrow_status } : it
                             )
                           )
                         }
