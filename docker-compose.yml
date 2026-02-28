@@ -13,6 +13,7 @@ services:
       - db-data:/var/lib/mysql
       - ./api/migrations/001_init.sql:/docker-entrypoint-initdb.d/001_init.sql:ro
       - ./api/migrations/002_roadtrips.sql:/docker-entrypoint-initdb.d/002_roadtrips.sql:ro
+      - ./api/migrations/005_sessions.sql:/docker-entrypoint-initdb.d/005_sessions.sql:ro
     healthcheck:
       test: ["CMD", "mysqladmin", "ping", "-h", "localhost", "-u", "root", "-p${MYSQL_ROOT_PASSWORD}"]
       interval: 10s

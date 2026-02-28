@@ -4,14 +4,11 @@ declare(strict_types=1);
 
 require_once __DIR__ . '/../vendor/autoload.php';
 
+use App\DbSessionHandler;
 use App\Router;
 
-// Store sessions in the bind-mounted api directory so they survive container restarts
-$sessionDir = __DIR__ . '/../storage/sessions';
-if (!is_dir($sessionDir)) {
-    mkdir($sessionDir, 0700, true);
-}
-session_save_path($sessionDir);
+// Store sessions in MySQL so they survive container restarts
+session_set_save_handler(new DbSessionHandler(), true);
 
 $thirtyDays = 60 * 60 * 24 * 30;
 ini_set('session.gc_maxlifetime', (string) $thirtyDays);
